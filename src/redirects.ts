@@ -18,4 +18,9 @@ export const redirects: Record<string, string> = {
 	// pages
 	'/pages/rent-affordability-calculator/index.html': '/research/pages/rent-affordability-calculator/index.html',
 	'/pages/rent-affordability-calculator': '/research/pages/rent-affordability-calculator/index.html',
+
+	// wordpress
+	'/admin': '/wp-login.php',
+	'/login': '/wp-login.php',
+	'/sign-in': '/wp-login.php',
 };
