@@ -1,0 +1,49 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "shi-reverse-proxy",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-02-23",
+	"observability": {
+		"enabled": true
+	},
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"env": {
+		"development": {
+			"vars": {
+				"DEVELOPMENT": "true",
+				"PRODUCTION": "false"
+			},
+			"routes": []
+		},
+		"production": {
+			"vars": {
+				"DEVELOPMENT": "false",
+				"PRODUCTION": "true"
+			},
+			"routes": [
+				{
+					"pattern": "shi.institute",
+					"custom_domain": true
+				},
+				{
+					"pattern": "www.shi.institute",
+					"custom_domain": true
+				},
+				{
+					"pattern": "ns-plots-24.shi.institute",
+					"custom_domain": true
+				},
+				{
+					"pattern": "dst-temp.shi.institute",
+					"custom_domain": true
+				},
+			]
+		}
+	}
+}
