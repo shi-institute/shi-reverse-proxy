@@ -3,6 +3,13 @@ interface ReverseProxyOptions {
 	notFoundPaths?: string[];
 	stringReplacements?: Record<string, string>;
 	removePath?: boolean;
+	spoofOrigin?: boolean;
+	spoofHost?: boolean;
+	afterBodyReplacements?: (
+		body: string | ArrayBuffer | ReadableStream<Uint8Array> | null,
+		requestUrl: URL,
+		contentType: string,
+	) => string | ArrayBuffer | ReadableStream<Uint8Array> | null;
 }
 
 export class ReverseProxy {
@@ -10,8 +17,19 @@ export class ReverseProxy {
 	private notFoundPaths: string[];
 	private stringReplacements: Record<string, string>;
 	private removePath: boolean;
+	private spoofOrigin: boolean;
+	private spoofHost: boolean;
+	private afterBodyReplacements?: ReverseProxyOptions['afterBodyReplacements'];
 
-	constructor({ originServer, notFoundPaths = [], stringReplacements = {}, removePath = false }: ReverseProxyOptions) {
+	constructor({
+		originServer,
+		notFoundPaths = [],
+		stringReplacements = {},
+		removePath = false,
+		spoofOrigin = true,
+		spoofHost = true,
+		afterBodyReplacements,
+	}: ReverseProxyOptions) {
 		if (!originServer) {
 			throw new Error('originServer must be defined');
 		}
@@ -28,6 +46,9 @@ export class ReverseProxy {
 		this.notFoundPaths = notFoundPaths;
 		this.stringReplacements = stringReplacements;
 		this.removePath = removePath;
+		this.spoofOrigin = spoofOrigin;
+		this.spoofHost = spoofHost;
+		this.afterBodyReplacements = afterBodyReplacements;
 	}
 
 	async fetch(request: Request): Promise<Response> {
@@ -43,9 +64,15 @@ export class ReverseProxy {
 		const originUrl = new URL(
 			this.proxyOriginServer.origin + (this.removePath ? this.proxyOriginServer.pathname : '') + requestUrl.pathname + requestUrl.search,
 		);
-		console.log(`Fetching from origin server: ${originUrl.href}`);
+		const requestHeaders = cloneHeaders(request.headers);
+		if (this.spoofOrigin) {
+			requestHeaders.set('Origin', this.proxyOriginServer.origin);
+		}
+		if (this.spoofHost) {
+			requestHeaders.set('Host', this.proxyOriginServer.host);
+		}
 		const originResponse = await fetch(originUrl, {
-			headers: request.headers,
+			headers: requestHeaders,
 			method: request.method,
 			body: request.body as any,
 			// duplex: 'half',
@@ -155,6 +182,10 @@ export class ReverseProxy {
 			});
 		} else {
 			body = await response.arrayBuffer();
+		}
+
+		if (this.afterBodyReplacements) {
+			body = this.afterBodyReplacements(body, requestUrl, contentType);
 		}
 
 		return body;

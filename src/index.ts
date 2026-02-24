@@ -23,6 +23,49 @@ export default {
 				return researchProxy.fetch(request);
 			}
 
+			const fuProxy = new ReverseProxy({
+				originServer: new URL('https://www.furman.edu/shi-institute'),
+				afterBodyReplacements: (body, requestUrl, contentType) => {
+					if (contentType.includes('text/html') && typeof body === 'string') {
+						// hide furman.edu navigation elements
+						body = body.replace(
+							'</head>',
+							`<style>
+	#app > .alert {
+			display: none !important;
+		}
+
+		#app > header {
+			display: none !important;
+		}
+
+		#app > footer, body > footer {
+			display: none !important;
+		}
+
+		.section-menu-wrapper {
+			display: none !important;
+		}
+	</style>
+</head>`,
+						);
+
+						// Replace links to <origin>/<pathname> where the pathname does not start with /shi-institute.
+						// These are links that point to part of the furman.edu website that we are not proxying.
+						body = body.replace(/http:\/\/localhost:8787\/(?!shi-institute\/)/g, 'https://www.furman.edu/');
+					}
+
+					return body;
+				},
+			});
+			if (requestUrl.pathname.startsWith('/shi-institute') || requestUrl.pathname.startsWith('/wp-content/themes/furman')) {
+				if (requestUrl.pathname.includes('wp-content/uploads')) {
+					return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://www.furman.edu'), 307);
+				}
+
+				return fuProxy.fetch(request);
+			}
+
 			// proxy all remaining requests to the blogs.furman.edu/shi-applied-research site
 			const blogProxy = new ReverseProxy({
 				originServer: new URL('https://blogs.furman.edu/shi-applied-research'),
