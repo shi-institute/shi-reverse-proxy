@@ -19,6 +19,10 @@ export const redirects: Record<string, string> = {
 	'/pages/rent-affordability-calculator/index.html': '/research/pages/rent-affordability-calculator/index.html',
 	'/pages/rent-affordability-calculator': '/research/pages/rent-affordability-calculator/index.html',
 
+	// filestore
+	'/filestore/Kolb%20-%20Measuring%20and%20Mapping%20Rural%20Gentrification%20-%20Research%20Brief.pdf':
+		'/research/filestore/Kolb%20-%20Measuring%20and%20Mapping%20Rural%20Gentrification%20-%20Research%20Brief.pdf',
+
 	// wordpress
 	'/admin': '/wp-login.php',
 	'/login': '/wp-login.php',
