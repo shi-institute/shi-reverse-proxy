@@ -9,7 +9,7 @@ interface ReverseProxyOptions {
 		body: string | ArrayBuffer | ReadableStream<Uint8Array> | null,
 		requestUrl: URL,
 		contentType: string,
-	) => string | ArrayBuffer | ReadableStream<Uint8Array> | null;
+	) => Promise<string | ArrayBuffer | ReadableStream<Uint8Array> | null> | string | ArrayBuffer | ReadableStream<Uint8Array> | null;
 }
 
 export class ReverseProxy {
@@ -185,7 +185,7 @@ export class ReverseProxy {
 		}
 
 		if (this.afterBodyReplacements) {
-			body = this.afterBodyReplacements(body, requestUrl, contentType);
+			body = await this.afterBodyReplacements(body, requestUrl, contentType);
 		}
 
 		return body;

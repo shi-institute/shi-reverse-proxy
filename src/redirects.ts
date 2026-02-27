@@ -27,4 +27,7 @@ export const redirects: Record<string, string> = {
 	'/admin': '/wp-login.php',
 	'/login': '/wp-login.php',
 	'/sign-in': '/wp-login.php',
+
+	// overrides for furman.edu/shi-institute -> shi.institute
+	'/shi-institute/wp-content/themes/furman/assets/favicon.png': '/files/2026/02/shi-logo.png',
 };

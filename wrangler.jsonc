@@ -8,11 +8,18 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-02-23",
 	"observability": {
-		"enabled": true
+		"enabled": true,
+		"logs": {
+			"enabled": true
+		}
 	},
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"assets": {
+		"directory": "./static",
+		"binding": "ASSETS"
+	},
 	"env": {
 		"development": {
 			"vars": {
@@ -43,7 +50,16 @@
 					"pattern": "dst-temp.shi.institute",
 					"custom_domain": true
 				},
-			]
+			],
+			"observability": {
+				"enabled": false,
+				"logs": {
+					"enabled": false
+				}
+			}
 		}
+	},
+	"placement": {
+		"hostname": "blogs.furman.edu"
 	}
 }

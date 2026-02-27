@@ -7,7 +7,8 @@
 		"dev": "wrangler dev --env development",
 		"start": "wrangler dev --env production",
 		"test": "vitest",
-		"cf-typegen": "wrangler types"
+		"cf-typegen": "wrangler types",
+		"tail": "wrangler tail --env production"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.12.4",
@@ -15,5 +16,9 @@
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.68.0"
+	},
+	"dependencies": {
+		"linkedom": "^0.18.12",
+		"zod": "^4.3.6"
 	}
 }
