@@ -1,0 +1,3 @@
+# enable CORS for all custom-elements files
+/custom-elements/*
+  Access-Control-Allow-Origin: *

@@ -60,6 +60,7 @@ ${shiNavListCSS}
 .shi-navbar-search > form {
     width: 100%;
     position: relative;
+    margin: 0;
 }
 .shi-navbar-search button {
   position: absolute;
@@ -182,6 +183,7 @@ ${shiNavListCSS}
 		const logo = document.createElement('img');
 		logo.src = '/files/2026/02/shi-institute-no-padding.png';
 		logo.alt = 'The Shi Institute';
+		logo.setAttribute('onerror', "this.src='https://shi.institute/files/2026/02/shi-institute-no-padding.png'");
 		logo.width = 200;
 		logoLink.appendChild(logo);
 
@@ -210,6 +212,15 @@ ${shiNavListCSS}
 
 		const searchButton = document.createElement('button');
 		searchButton.type = 'submit';
+
+		// if the search input is empty, focus the input instead of submitting the form
+		searchButton.addEventListener('click', (event) => {
+			if (searchInput.value.trim() === '') {
+				event.preventDefault();
+				searchInput.focus();
+			}
+		});
+
 		searchForm.appendChild(searchButton);
 
 		const searchSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -552,7 +563,7 @@ const getSideNavInnerHTML = (items) => {
             class="side-nav-search-input"
             onkeydown="if(event.key === 'Enter') { this.form.submit(); }"
           >
-          <button type="submit">
+          <button type="submit" onclick="if (this.previousElementSibling.value.trim() === '') { event.preventDefault(); this.previousElementSibling.focus(); }">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-label="Search icon"><path d="M500.3 443.7l-119.7-119.7c27.22-40.41 40.65-90.9 33.46-144.7C401.8 87.79 326.8 13.32 235.2 1.723C99.01-15.51-15.51 99.01 1.724 235.2c11.6 91.64 86.08 166.7 177.6 178.9c53.8 7.189 104.3-6.236 144.7-33.46l119.7 119.7c15.62 15.62 40.95 15.62 56.57 0C515.9 484.7 515.9 459.3 500.3 443.7zM79.1 208c0-70.58 57.42-128 128-128s128 57.42 128 128c0 70.58-57.42 128-128 128S79.1 278.6 79.1 208z"></path></svg>
           </button>
         </form>
@@ -606,6 +617,7 @@ const getSideNavInnerHTML = (items) => {
       .side-nav-search-wrapper > form {
           width: 100%;
           position: relative;
+          margin: 0;
       }
       .side-nav-search-wrapper button {
         position: absolute;

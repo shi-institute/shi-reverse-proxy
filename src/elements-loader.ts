@@ -1,25 +1,5 @@
 import { parseHTML } from 'linkedom';
 
-export default {
-	async fetch(request: Request, env: Env): Promise<Response | void> {
-		const url = new URL(request.url);
-
-		if (env.ASSETS && url.pathname.startsWith('/custom-elements/')) {
-			const response = await env.ASSETS.fetch(url.pathname);
-			if (response.status === 200) {
-				const text = await response.text();
-				return new Response(text, {
-					headers: {
-						'Content-Type': 'text/javascript',
-					},
-				});
-			} else {
-				return new Response('Not found', { status: 404 });
-			}
-		}
-	},
-};
-
 export async function ssrCustomElement<T extends CustomElementConstructor>(
 	name: string,
 	importElementClass: () => T | Promise<T>,

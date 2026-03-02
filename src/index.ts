@@ -1,6 +1,5 @@
 import { ReverseProxy } from './ReverseProxy';
-import customElementsLoader, { ssrCustomElement } from './elements-loader';
-import { getNavigationElements, toLabelHrefPair } from './menu';
+import { getInjectableNavigation, getNavigationMenuData } from './menu';
 import { redirects } from './redirects';
 
 export default {
@@ -13,14 +12,25 @@ export default {
 				return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://shi.institute'), 307);
 			}
 
+			// provide an easy way to list the menu items
+			if (requestUrl.pathname === '/.data/menus.json') {
+				const menuItems = await getNavigationMenuData(ctx);
+				return new Response(JSON.stringify(menuItems), {
+					headers: {
+						'Content-Type': 'application/json; charset=utf-8',
+						'Access-Control-Allow-Origin': '*',
+						'Cache-Control': 'public, max-age=60',
+					},
+					status: 200,
+					statusText: 'OK',
+				});
+			}
+
 			// if there is a redirect for the current path, follow it
 			const maybeRedirectPathname = redirects[requestUrl.pathname.endsWith('/') ? requestUrl.pathname.slice(0, -1) : requestUrl.pathname];
 			if (maybeRedirectPathname) {
 				return Response.redirect(new URL(maybeRedirectPathname, requestUrl.origin), 302);
 			}
-
-			// if the request is for a custom element script, serve it from the static assets
-			customElementsLoader.fetch(request, env);
 
 			// proxy all /research requests to the interactive-web deployment
 			const researchProxy = new ReverseProxy({ originServer: new URL('https://interactive-web.shi.institute/research') });
@@ -53,7 +63,7 @@ export default {
 							// inject our own navigation elements
 							body = body.replace(
 								`<!-- End Google Tag Manager (noscript) -->`,
-								`<!-- End Google Tag Manager (noscript) -->${await getInjectableNavigation(ctx)}<style>${shiFontFaces}</style>`,
+								`<!-- End Google Tag Manager (noscript) -->${await getInjectableNavigation(ctx)}`,
 							);
 
 							// Replace links to <origin>/<pathname> where the pathname does not start with /shi-institute.
@@ -61,6 +71,11 @@ export default {
 							body = body.replace(/http:\/\/localhost:8787\/([^"' ]*)/g, (match, path) => {
 								if (path.startsWith('shi-institute/') || path === 'shi-institute') return match; // leave intact
 								return `https://www.furman.edu/${path}`;
+							});
+
+							// replace all relative paths (href="/something") with absolute paths (href="https://www.furman.edu/something") except for paths that start with /shi-institute
+							body = body.replace(/(href|src)=["']\/(?!shi-institute)([^"' ]*)["']/g, (match, attr, path) => {
+								return `${attr}="https://www.furman.edu/${path}"`;
 							});
 						}
 
@@ -86,7 +101,7 @@ export default {
 					'↗': '↗︎',
 
 					// inject our own navigation elements
-					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end -->${await getInjectableNavigation(ctx)}<style>${shiFontFaces}</style>`,
+					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end -->${await getInjectableNavigation(ctx)}`,
 
 					// hide built-in navigation elemenets
 					'</head>': '<style>#navbar-secondary,#wrapper-navbar-main {display: none !important;}</style></head>',
@@ -102,62 +117,3 @@ export default {
 		}
 	},
 } satisfies ExportedHandler<Env>;
-
-const shiFontFaces = `
-@font-face {
-  font-family: 'Epilogue';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url(/wp-content/themes/cpschool/fonts/epilogue/fonts/Epilogue-VariableFont_wght.ttf) format('woff2');
-}
-`;
-
-async function getInjectableNavigation(ctx: ExecutionContext) {
-	const primaryMenuBarHtml = ssrCustomElement(
-		'shi-primary-menu-bar',
-		() => import('../static/custom-elements/shi-primary-menu-bar.js').then((mod) => mod.ShiPrimaryNavigationBar),
-		{
-			items: await (async () => {
-				const navigationElements = await getNavigationElements('primary', ctx);
-
-				const menuItems = navigationElements.flatMap((item, index, array) => {
-					const labelHrefPair = toLabelHrefPair(item);
-
-					// add a divider before services and after projects
-					if (index === array.length - 3 || index === array.length - 1) {
-						return [labelHrefPair, { label: 'divider', href: '' }];
-					}
-
-					return labelHrefPair;
-				});
-
-				return menuItems;
-			})(),
-			'side-nav-items': (await getNavigationElements('menu', ctx)).map(toLabelHrefPair),
-		},
-	);
-
-	const secondaryMenuBarHtml = ssrCustomElement(
-		'shi-secondary-menu-bar',
-		() => import('../static/custom-elements/shi-secondary-menu-bar.js').then((mod) => mod.ShiSecondaryNavigationBar),
-		{
-			'left-items': await getNavigationElements('secondaryLeft', ctx).then((elements) => elements.map(toLabelHrefPair)),
-			'right-items': await getNavigationElements('secondaryRight', ctx).then((elements) => elements.map(toLabelHrefPair)),
-		},
-	);
-
-	return `
-		${await secondaryMenuBarHtml}
-		${await primaryMenuBarHtml}
-		<script type="module">
-			import '/custom-elements/define.js';
-		</script>
-		<style>
-			@view-transition {
-				navigation: auto;
-			}
-			${shiFontFaces}
-		</style>
-	`;
-}

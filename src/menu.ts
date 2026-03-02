@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import z from 'zod';
+import { ssrCustomElement } from './elements-loader.js';
 
 const NAVIGATION_TIERS = {
 	/**
@@ -117,5 +118,79 @@ export function toLabelHrefPair(element: z.infer<typeof partialMenuItemSchema>) 
 	return {
 		label: element.title.rendered,
 		href: element.url,
+	};
+}
+
+const shiFontFaces = `
+@font-face {
+	font-family: 'Epilogue';
+	font-style: normal;
+	font-weight: 100 900;
+	font-display: swap;
+	src: url(/wp-content/themes/cpschool/fonts/epilogue/fonts/Epilogue-VariableFont_wght.ttf) format('woff2');
+}
+`;
+
+/**
+ * Gets the HTML and script for the Shi Institute custom menus. The HTML uses declarative shadow DOM to ensure that
+ * the menu HTML is available immedeiately on page load. The menu is upgraded to a custom element on the client side
+ * once the custom elements script is loaded.
+ */
+export async function getInjectableNavigation(ctx: ExecutionContext) {
+	const menuData = await getNavigationMenuData(ctx);
+
+	const primaryMenuBarHtml = ssrCustomElement(
+		'shi-primary-menu-bar',
+		() => import('../static/custom-elements/shi-primary-menu-bar.js').then((mod) => mod.ShiPrimaryNavigationBar),
+		{
+			items: menuData.primary,
+			'side-nav-items': menuData.menu,
+		},
+	);
+
+	const secondaryMenuBarHtml = ssrCustomElement(
+		'shi-secondary-menu-bar',
+		() => import('../static/custom-elements/shi-secondary-menu-bar.js').then((mod) => mod.ShiSecondaryNavigationBar),
+		{
+			'left-items': menuData.secondaryLeft,
+			'right-items': menuData.secondaryRight,
+		},
+	);
+
+	return `
+		${await secondaryMenuBarHtml}
+		${await primaryMenuBarHtml}
+		<script type="module">
+			import '/custom-elements/define.js';
+		</script>
+		<style>
+			@view-transition {
+				navigation: auto;
+			}
+			${shiFontFaces}
+		</style>
+	`;
+}
+
+export async function getNavigationMenuData(ctx: ExecutionContext) {
+	const [primary, secondaryLeft, secondaryRight, menu] = await Promise.all([
+		getNavigationElements('primary', ctx),
+		getNavigationElements('secondaryLeft', ctx),
+		getNavigationElements('secondaryRight', ctx),
+		getNavigationElements('menu', ctx),
+	]);
+
+	return {
+		primary: primary.map(toLabelHrefPair).flatMap((item, index, array) => {
+			// add a divider before services and after projects
+			if (index === array.length - 3 || index === array.length - 1) {
+				return [item, { label: 'divider', href: '' }];
+			}
+
+			return item;
+		}),
+		secondaryLeft: secondaryLeft.map(toLabelHrefPair),
+		secondaryRight: secondaryRight.map(toLabelHrefPair),
+		menu: menu.map(toLabelHrefPair),
 	};
 }
