@@ -169,6 +169,15 @@ export async function getInjectableNavigation(ctx: ExecutionContext) {
 			}
 			${shiFontFaces}
 		</style>
+		<script type="module">
+			// on Meta + Shift + E, launch the WordPress editor for current page or post if it exists
+			window.addEventListener('keydown', async (event) => {
+				if (event.metaKey && event.shiftKey && event.key.toLowerCase() === 'e') {
+					event.preventDefault();
+					window.open(\`/.api/editor\${window.location.pathname}\`, '_blank', 'width=1600,height=1000');
+				}
+			});
+		</script>
 	`;
 }
 

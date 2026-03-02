@@ -31,6 +31,7 @@
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
 		"noUncheckedSideEffectImports": true,
+		"noImplicitAny": true,
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
 		"types": [

@@ -1,4 +1,5 @@
 import { ReverseProxy } from './ReverseProxy';
+import handleApiRequest from './api';
 import { getInjectableNavigation, getNavigationMenuData } from './menu';
 import { redirects } from './redirects';
 
@@ -30,6 +31,12 @@ export default {
 			const maybeRedirectPathname = redirects[requestUrl.pathname.endsWith('/') ? requestUrl.pathname.slice(0, -1) : requestUrl.pathname];
 			if (maybeRedirectPathname) {
 				return Response.redirect(new URL(maybeRedirectPathname, requestUrl.origin), 302);
+			}
+
+			// handle API requests
+			const maybeApiResponse = await handleApiRequest.fetch(request, env, ctx);
+			if (maybeApiResponse) {
+				return maybeApiResponse;
 			}
 
 			// proxy all /research requests to the interactive-web deployment
