@@ -33,5 +33,6 @@ export const redirects: Record<string, string> = {
 	'/category/services': '/services',
 
 	// overrides for furman.edu/shi-institute -> shi.institute
-	'/shi-institute/wp-content/themes/furman/assets/favicon.png': '/files/2026/02/shi-logo.png',
+	'/shi-institute/wp-content/themes/furman/assets/favicon.png': '/favicon.svg',
+	'/favicon.svg': '/files/2026/03/shi-favicon.svg',
 };
