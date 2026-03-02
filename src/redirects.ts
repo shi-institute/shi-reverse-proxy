@@ -28,6 +28,10 @@ export const redirects: Record<string, string> = {
 	'/login': '/wp-login.php',
 	'/sign-in': '/wp-login.php',
 
+	// redirect category pages to their custom landing pages
+	'/category/projects': '/projects',
+	'/category/services': '/services',
+
 	// overrides for furman.edu/shi-institute -> shi.institute
 	'/shi-institute/wp-content/themes/furman/assets/favicon.png': '/files/2026/02/shi-logo.png',
 };
