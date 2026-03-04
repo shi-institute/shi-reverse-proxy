@@ -36,7 +36,9 @@
 		"skipLibCheck": true,
 		"types": [
 			"./worker-configuration.d.ts",
-			"node"
+			"node",
+			"./typings.d.ts",
+			"./globals.d.ts"
 		]
 	},
 	"exclude": [
@@ -45,6 +47,7 @@
 	"include": [
 		"worker-configuration.d.ts",
 		"src/**/*.ts",
+		"static/**/*.js",
 		"static/custom-elements/shi-primary-menu-bar.js"
 	]
 }

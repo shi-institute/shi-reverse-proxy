@@ -1,3 +1,8 @@
+import z from 'zod';
+
+const BLOG = 'https://blogs.furman.edu/shi-applied-research';
+const FUWEB = 'https://www.furman.edu/shi-institute';
+
 export default {
 	async fetch(request: Request<unknown, IncomingRequestCfProperties<unknown>>, env: Env, ctx: ExecutionContext): Promise<Response | void> {
 		const url = new URL(request.url);
@@ -41,8 +46,80 @@ export default {
 
 			return Response.redirect(editUrl, 307);
 		}
+
+		if (url.pathname === '/.api/posts') {
+			const tagIds = url.searchParams.get('tags');
+			const tagIdsArray = tagIds
+				? tagIds
+						.split(',')
+						.map((id) => Number(id.trim()))
+						.filter((id) => Number.isInteger(id))
+				: [];
+
+			const categoryIds = url.searchParams.get('categories');
+			const categoryIdsArray = categoryIds
+				? categoryIds
+						.split(',')
+						.map((id) => Number(id.trim()))
+						.filter((id) => Number.isInteger(id))
+				: [];
+
+			const posts = await getPosts(categoryIdsArray, tagIdsArray);
+			return new Response(JSON.stringify(posts).replaceAll('https://blogs.furman.edu/shi-applied-research', ''), {
+				headers: { 'Content-Type': 'application/json' },
+				status: 200,
+				statusText: 'OK',
+			});
+		}
 	},
 };
+
+/**
+ * Gets posts from the WordPress REST API with optional filtering by category and tag IDs.
+ * Also fetches media details for posts with a featured image.
+ */
+export async function getPosts(categoryIds: number[] = [], tagIds: number[] = []) {
+	const postsQueryUrl = new URL(`${BLOG}/wp-json/wp/v2/posts`);
+	if (tagIds.length > 0) {
+		postsQueryUrl.searchParams.set('tags', tagIds.join(','));
+	}
+	if (categoryIds.length > 0) {
+		postsQueryUrl.searchParams.set('categories', categoryIds.join(','));
+	}
+
+	const posts = await fetch(postsQueryUrl, {
+		headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
+	})
+		.then((res) => res.json())
+		.then((data) => wordpressPostSchema.array().parse(data))
+		.catch((err) => {
+			console.error('Error fetching posts:', err);
+			return [] as z.infer<typeof wordpressPostSchema>[];
+		});
+
+	const postsWithMedia = await Promise.all(
+		posts.map(async (post) => {
+			if (post.featured_media) {
+				const media = await fetch(`${BLOG}/wp-json/wp/v2/media/${post.featured_media}`, {
+					headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
+				})
+					.then((res) => res.json())
+					.then((data) => wordpressMediaSchema.parse(data))
+					.catch((err) => {
+						console.error(`Error fetching media for post ${post.id}:`, err);
+						return null;
+					});
+				return { ...post, media };
+			}
+			return post;
+		}),
+	);
+
+	return postsWithMedia;
+}
+
+export type Post = Awaited<ReturnType<typeof getPosts>>[number];
+export type Posts = Post[];
 
 /**
  * Queries the WordPress REST API for blugs.furman.edu/shi-applied-research and
@@ -54,13 +131,13 @@ export default {
  */
 export async function getIdFromPathname(pathname: string) {
 	// try the blog API first
-	let id = await getPageOrPostId('https://blogs.furman.edu/shi-applied-research', pathname);
+	let id = await getPageOrPostId(BLOG, pathname);
 	if (id) {
 		return id;
 	}
 
 	// also try furman.edu/shi-instiute
-	id = await getPageOrPostId('https://www.furman.edu/shi-institute', pathname);
+	id = await getPageOrPostId(FUWEB, pathname);
 	if (id) {
 		return id;
 	}
@@ -108,3 +185,98 @@ async function getPageOrPostId(baseUrl: string, path: string) {
 
 	return null;
 }
+
+const wpDate = z
+	.string()
+	.regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)
+	.or(z.string().datetime())
+	.describe('WordPress datetime');
+
+export const wordpressPostSchema = z.object({
+	id: z.number(),
+	date: wpDate,
+	date_gmt: wpDate,
+	modified: wpDate,
+	modified_gmt: wpDate,
+	slug: z.string(),
+	status: z.string(),
+	type: z.literal('post'),
+	link: z.string().url(),
+	title: z.object({ rendered: z.string() }),
+	content: z.object({
+		rendered: z.string(),
+		protected: z.boolean(),
+	}),
+	excerpt: z.object({
+		rendered: z.string(),
+		protected: z.boolean(),
+	}),
+	author: z.number(),
+	featured_media: z.number(),
+	comment_status: z.string(),
+	ping_status: z.string(),
+	sticky: z.boolean(),
+	template: z.string(),
+	format: z.string(),
+	meta: z.record(z.string(), z.unknown()),
+	categories: z.array(z.number()),
+	tags: z.array(z.number()),
+	_links: z.record(z.string(), z.unknown()),
+});
+
+export const wordpressMediaSchema = z.object({
+	id: z.number(),
+	date: wpDate,
+	date_gmt: wpDate,
+	modified: wpDate,
+	modified_gmt: wpDate,
+	slug: z.string(),
+	type: z.literal('attachment'),
+	link: z.string().url(),
+	title: z.object({ rendered: z.string() }),
+	author: z.number(),
+	comment_status: z.string(),
+	ping_status: z.string(),
+	alt_text: z.string(),
+	caption: z.object({ rendered: z.string() }),
+	description: z.object({ rendered: z.string() }),
+	media_type: z.string(),
+	mime_type: z.string(),
+	post: z.number().nullable(),
+	source_url: z.string().url(),
+	media_details: z.object({
+		width: z.number().optional(),
+		height: z.number().optional(),
+		file: z.string().optional(),
+		filesize: z.number().optional(),
+		sizes: z
+			.record(
+				z.string(),
+				z.object({
+					file: z.string().optional(),
+					width: z.number().optional(),
+					height: z.number().optional(),
+					mime_type: z.string().optional(),
+					source_url: z.url().optional(),
+				}),
+			)
+			.optional(),
+		image_meta: z
+			.object({
+				aperture: z.number().or(z.string()).optional(),
+				credit: z.string().optional(),
+				camera: z.string().optional(),
+				caption: z.string().optional(),
+				created_timestamp: z.string().optional(),
+				copyright: z.string().optional(),
+				focal_length: z.number().or(z.string()).optional(),
+				iso: z.number().or(z.string()).optional(),
+				shutter_speed: z.number().or(z.string()).optional(),
+				title: z.string().optional(),
+				orientation: z.string().optional(),
+				keywords: z.array(z.string()).optional(),
+			})
+			.optional(),
+	}),
+	_links: z.record(z.string(), z.unknown()),
+});

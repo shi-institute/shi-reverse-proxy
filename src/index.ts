@@ -1,5 +1,7 @@
+import { parseHTML } from 'linkedom';
 import { ReverseProxy } from './ReverseProxy';
 import handleApiRequest from './api';
+import { ssrCustomElement } from './elements-loader';
 import { getInjectableNavigation, getNavigationMenuData } from './menu';
 import { redirects } from './redirects';
 
@@ -113,6 +115,65 @@ export default {
 					// hide built-in navigation elemenets
 					'</head>': '<style>#navbar-secondary,#wrapper-navbar-main {display: none !important;}</style></head>',
 				},
+				async afterBodyReplacements(body, requestUrl, contentType) {
+					if (contentType.includes('text/html') && typeof body === 'string') {
+						if (requestUrl.pathname === '/projects/') {
+							// hydrate shi-post-card-grid
+							const { document } = parseHTML(body);
+							const grid = document.querySelector('shi-post-card-grid');
+							if (grid) {
+								const tags =
+									requestUrl.searchParams
+										.get('tag')
+										?.split(',')
+										.map((s) => parseInt(s.trim()))
+										.filter((n) => Number.isInteger(n)) ?? [];
+
+								const currentAttributes = Object.fromEntries(Array.from(grid.attributes).map((attr) => [attr.name, attr.value]));
+								currentAttributes['tag-ids'] = JSON.stringify(tags);
+
+								const ssrGrid = await ssrCustomElement(
+									'shi-post-card-grid',
+									() => import('../static/custom-elements/shi-post-card-grid.js').then((mod) => mod.ShiPostCardGrid),
+									currentAttributes,
+									{
+										async wait(element) {
+											// wait for the element to fetch its data and render
+											await new Promise((resolve) => {
+												element.addEventListener('posts-fetched', (event) => {
+													resolve(undefined);
+												});
+
+												// or resolve after 5 seconds
+												setTimeout(() => {
+													resolve(undefined);
+												}, 5000);
+											});
+										},
+										polyfills: {
+											location: {
+												// @ts-expect-error
+												search: requestUrl.search,
+												href: requestUrl.href,
+												origin: requestUrl.origin,
+												protocol: requestUrl.protocol,
+												host: requestUrl.host,
+												hostname: requestUrl.hostname,
+												port: requestUrl.port,
+												pathname: requestUrl.pathname,
+												hash: requestUrl.hash,
+											},
+										},
+									},
+								);
+								grid.outerHTML = ssrGrid;
+							}
+							body = document.documentElement.outerHTML;
+						}
+					}
+
+					return body;
+				},
 				removePath: true,
 			});
 
@@ -120,6 +181,11 @@ export default {
 		} catch (error) {
 			return new Response(`Error: ${error instanceof Error ? error.message : String(error)}`, {
 				status: 500,
+				headers: {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-store',
+				},
+				cf: { cacheTtl: 0, cacheEverything: false },
 			});
 		}
 	},

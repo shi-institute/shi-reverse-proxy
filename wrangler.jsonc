@@ -16,6 +16,10 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"alias": {
+		"https://esm.run/zod": "zod",
+		"https://esm.run/xss": "xss"
+	},
 	"assets": {
 		"directory": "./static",
 		"binding": "ASSETS"

@@ -71,6 +71,9 @@ export class ReverseProxy {
 		if (this.spoofHost) {
 			requestHeaders.set('Host', this.proxyOriginServer.host);
 		}
+		if (request.headers.get('Cache-Control') === 'no-cache') {
+			originUrl.searchParams.set('_cache-bust', Date.now().toString());
+		}
 		const originResponse = await fetch(originUrl, {
 			headers: requestHeaders,
 			method: request.method,
@@ -111,8 +114,10 @@ export class ReverseProxy {
 
 		// replace all URLs in the response body that point to the WordPress server with URLs that point to the proxy
 		const body = await this.readBodyWithReplacements(originResponse, requestUrl);
+
 		const headers = cloneHeaders(originResponse.headers);
 		headers.set('Link', `<${requestUrl.href}>; rel="canonical"`);
+		headers.set('Content-Security-Policy', 'upgrade-insecure-requests');
 		return new Response(body, {
 			status: originResponse.status,
 			headers,

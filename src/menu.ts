@@ -37,49 +37,65 @@ async function getNavigationMenuItems(ctx: ExecutionContext): Promise<Array<z.in
 		return cached.json();
 	}
 
-	// grab the menu items from the API
-	const response = await fetch(cacheKey.url, {
-		headers: {
-			Authorization: 'Basic ' + btoa(`${env.WP_API_USERNAME}:${env.WP_API_TOKEN}`),
-			'User-Agent': 'Cloudflare-Worker/1.0',
-			Host: 'blogs.furman.edu',
-		},
-	});
-	if (!response.ok) {
-		try {
-			const errorData = await response.json();
-			console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`, errorData);
-		} catch {
-			console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`);
+	// 5-second timeout to prevent hanging if the WordPress API is slow to respond
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+	try {
+		// grab the menu items from the API
+		const response = await fetch(cacheKey.url, {
+			headers: {
+				Authorization: 'Basic ' + btoa(`${env.WP_API_USERNAME}:${env.WP_API_TOKEN}`),
+				'User-Agent': 'Cloudflare-Worker/1.0',
+				Host: 'blogs.furman.edu',
+			},
+			signal: controller.signal,
+		});
+		clearTimeout(timeoutId);
+
+		if (!response.ok) {
+			try {
+				const errorData = await response.json();
+				console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`, errorData);
+			} catch {
+				console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`);
+			}
+			return [];
 		}
-		return [];
+
+		const menuItems = await response.json();
+		if (!Array.isArray(menuItems)) {
+			throw new Error('Invalid response from menu-items endpoint');
+		}
+
+		const validMenuItems = partialMenuItemSchema
+			.array()
+			.parse(menuItems)
+			.map((item) => ({
+				...item,
+				url: item.url.replace(BLOG_HOME, ''), // convert absolute URLs to relative URLs
+			}));
+
+		// create a new response with the cache headers
+		const responseToCache = new Response(JSON.stringify(validMenuItems), {
+			headers: {
+				'Content-Type': 'application/json',
+				'Cache-Control': 'public, max-age=60', // cache for 1 minute
+			},
+		});
+
+		// store the response in the cache without blocking the response to the client
+		ctx.waitUntil(cache.put(cacheKey, responseToCache));
+
+		return validMenuItems;
+	} catch (error) {
+		clearTimeout(timeoutId);
+		if (error instanceof Error && error.name === 'AbortError') {
+			console.error('Request timed out');
+			throw new Error('Request timed out while fetching navigation menu items');
+		}
+		throw error;
 	}
-
-	const menuItems = await response.json();
-	if (!Array.isArray(menuItems)) {
-		throw new Error('Invalid response from menu-items endpoint');
-	}
-
-	const validMenuItems = partialMenuItemSchema
-		.array()
-		.parse(menuItems)
-		.map((item) => ({
-			...item,
-			url: item.url.replace(BLOG_HOME, ''), // convert absolute URLs to relative URLs
-		}));
-
-	// create a new response with the cache headers
-	const responseToCache = new Response(JSON.stringify(validMenuItems), {
-		headers: {
-			'Content-Type': 'application/json',
-			'Cache-Control': 'public, max-age=60', // cache for 1 minute
-		},
-	});
-
-	// store the response in the cache without blocking the response to the client
-	ctx.waitUntil(cache.put(cacheKey, responseToCache));
-
-	return validMenuItems;
 }
 
 const partialMenuItemSchema = z.object({
