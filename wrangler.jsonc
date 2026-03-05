@@ -31,6 +31,12 @@
 				"DEVELOPMENT": true,
 				"PRODUCTION": false
 			},
+			"services": [
+				{
+					"binding": "SELF",
+					"service": "shi-reverse-proxy-development"
+				}
+			],
 			"routes": []
 		},
 		"production": {
@@ -38,6 +44,12 @@
 				"DEVELOPMENT": false,
 				"PRODUCTION": true
 			},
+			"services": [
+				{
+					"binding": "SELF",
+					"service": "shi-reverse-proxy-production"
+				}
+			],
 			"routes": [
 				{
 					"pattern": "shi.institute",

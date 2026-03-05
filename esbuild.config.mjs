@@ -15,7 +15,7 @@ const commonEsbuildOptions = {
 	color: true,
 	// Treat platform-specific virtual imports (like `cloudflare:workers`) as externals
 	// so esbuild doesn't try to resolve them while bundling for Workers.
-	external: ['cloudflare:workers'],
+	external: ['cloudflare:workers', 'node:async_hooks'],
 	define: {
 		CUSTOM_ELEMENT_NAMESPACE: JSON.stringify('shi'),
 	},

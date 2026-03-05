@@ -2,6 +2,7 @@ import { uneval } from 'devalue';
 import type { Component } from 'svelte';
 import { SvelteURL } from 'svelte/reactivity';
 import { render as renderComponent } from 'svelte/server';
+import { fetchStorage } from '../worker';
 import * as components from './components';
 import { pascalCaseToKebabCase } from './utils';
 import { setUrlForSsr } from './utils/navigation';
@@ -14,6 +15,8 @@ type RenderOptions<C extends Component<any>> = Parameters<typeof renderComponent
 interface Globals {
 	/** The URL that will be exposed as the current URL for any component that uses the $url store. */
 	url: URL;
+	/** An optional alternative fetch implentation. */
+	fetch?: typeof fetch;
 }
 
 /**
@@ -31,8 +34,20 @@ export async function render<N extends ComponentName>(
 
 	setUrlForSsr(new SvelteURL(globals.url ?? 'https://localhost:8787/'));
 
-	// @ts-expect-error
-	const { body, hashes, head } = await renderComponent(component, options);
+	let renderOutput: Awaited<ReturnType<typeof renderComponent>>;
+	if (globals.fetch) {
+		renderOutput = await new Promise((resolve) => {
+			fetchStorage.run(globals.fetch!, async () => {
+				// @ts-expect-error
+				resolve(await renderComponent(component, options));
+			});
+		});
+	} else {
+		// @ts-expect-error
+		renderOutput = await renderComponent(component, options);
+	}
+
+	const { body, hashes, head } = renderOutput;
 	const tag = pascalCaseToKebabCase(CUSTOM_ELEMENT_NAMESPACE + component.name);
 	const data =
 		`<script type="application/json" data-hydration-pack data-for="${uuid}">` +

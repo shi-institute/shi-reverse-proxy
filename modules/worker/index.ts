@@ -1,4 +1,5 @@
 import { parseHTML } from 'linkedom';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { render } from '../custom-elements/server';
 import { ReverseProxy } from './ReverseProxy';
 import handleApiRequest from './api';
@@ -139,6 +140,7 @@ export default {
 								},
 								{
 									url: requestUrl,
+									fetch: prepareFetchWithSelf(env, requestUrl),
 								},
 							);
 							grid.outerHTML = ssrGrid;
@@ -165,3 +167,28 @@ export default {
 		}
 	},
 } satisfies ExportedHandler<Env>;
+
+// Replaces fetch with a modified fetch. In any context where
+// fetchStorage.run() has been called, the first argument to
+// fetchStorage.run() will be used as the fetch implementation
+// instead of the global fetch. This allows us to use a custom
+// fetch implementation that implements env.SELF.fetch to avoid
+// 522 errors when making fetch requests to the same worker from
+// within the worker.
+export const fetchStorage = new AsyncLocalStorage<typeof fetch>();
+const originalFetch = globalThis.fetch;
+globalThis.fetch = ((input, init) => {
+	const scopedFetch = fetchStorage.getStore();
+	if (scopedFetch) return scopedFetch(input, init);
+	return originalFetch(input, init);
+}) satisfies typeof fetch;
+
+function prepareFetchWithSelf(env: Env, requestUrl: URL) {
+	return ((input, init) => {
+		const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+		if (url.hostname === requestUrl.hostname && env.SELF) {
+			return env.SELF.fetch(new Request(input, init));
+		}
+		return originalFetch(input, init);
+	}) satisfies typeof fetch;
+}
