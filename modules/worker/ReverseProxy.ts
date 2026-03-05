@@ -166,6 +166,11 @@ export class ReverseProxy {
 				text = text.replaceAll(escaped(this.proxyOriginServer.pathname), escaped(''));
 			}
 
+			// use relative paths
+			text = text.replaceAll(new RegExp(escaped(requestUrl.origin) + '/([^"\' ]*)', 'g'), (match, path) => {
+				return `/${path}`;
+			});
+
 			// also perform any additional string replacements
 			for (const [searchValue, replaceValue] of Object.entries(this.stringReplacements)) {
 				text = text.replaceAll(escaped(searchValue), escaped(replaceValue));

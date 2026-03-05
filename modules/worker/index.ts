@@ -69,14 +69,9 @@ export default {
 								`<style>#app > .alert, #app > header, #app > footer, body > footer, .section-menu-wrapper, #section-menu-container { display: none !important; }</style></head>`,
 							);
 
-							// Replace links to <origin>/<pathname> where the pathname does not start with /shi-institute.
-							// These are links that point to part of the furman.edu website that we are not proxying.
-							body = body.replace(/http:\/\/localhost:8787\/([^"' ]*)/g, (match, path) => {
-								if (path.startsWith('shi-institute/') || path === 'shi-institute') return match; // leave intact
-								return `https://www.furman.edu/${path}`;
-							});
-
-							// replace all relative paths (href="/something") with absolute paths (href="https://www.furman.edu/something") except for paths that start with /shi-institute
+							// Replace all relative paths (href="/something") with absolute paths (href="https://www.furman.edu/something")
+							// except for paths that start with /shi-institute. We only want to proxy the /shi-institute subdirectory,
+							// so we want to keep links to other parts of the furman.edu site on the furman.edu origin.
 							body = body.replace(/(href|src)=["']\/(?!shi-institute)([^"' ]*)["']/g, (match, attr, path) => {
 								return `${attr}="https://www.furman.edu/${path}"`;
 							});
