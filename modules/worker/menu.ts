@@ -1,52 +1,38 @@
-import { env } from 'cloudflare:workers';
-import z from 'zod';
+import { parseHTML } from 'linkedom';
 import type { NavigationListItem } from '../custom-elements/components/navigation-bar-parts/NavigationList.svelte';
 import { render } from '../custom-elements/server.js';
 
-const NAVIGATION_TIERS = {
-	/**
-	 * The main menu bar that appears at the top of the page on desktop.
-	 */
-	primary: 2,
-	/**
-	 * The small menu that appears at the top-right of the page on desktop.
-	 */
-	secondaryRight: 3,
-	/**
-	 * The small menu that appears at the top-left of the page on desktop.
-	 */
-	secondaryLeft: 4,
-	/**
-	 * The navigation menu that opens from the hamburger icon.
-	 */
-	menu: 5,
-};
+type NavigationTier = 'secondaryLeft' | 'secondaryRight' | 'desktopNavbar' | 'desktopSideMenu' | 'mobileSideMenu';
 
 const BLOG_HOME = 'https://blogs.furman.edu/shi-applied-research';
 
 /**
- * Gets the navigation menu items from the Shi Institute WordPress API.
+ * Gets the navigation menu items by scraping the Shi Applied Research WordPress site.
+ *
+ * The menu items are cached for 1 minute to reduce the number of requests to the WordPress site.
  */
-async function getNavigationMenuItems(ctx: ExecutionContext): Promise<Array<z.infer<typeof partialMenuItemSchema>>> {
-	const url = new URL(`${BLOG_HOME}/wp-json/wp/v2/menu-items`);
+async function getNavigationMenuItems(
+	ctx: ExecutionContext,
+): Promise<Record<NavigationTier, ReturnType<typeof interpretMenuItems>> | null> {
+	const url = new URL(`${BLOG_HOME}`);
 	const cacheKey = new Request(url);
 
-	// if the menu items are in the cache, use them instead of re-fetching from the API
+	// if the menu items are in the cache, use them instead of scraping the WordPress site again
 	const cache = await caches.open('navigation-cache');
 	const cached = await cache.match(cacheKey);
 	if (cached) {
 		return cached.json();
 	}
 
-	// 5-second timeout to prevent hanging if the WordPress API is slow to respond
+	// 5-second timeout to prevent hanging if the WordPress site is slow to respond
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), 5000);
 
 	try {
-		// grab the menu items from the API
+		// grab the home page HTML
 		const response = await fetch(cacheKey.url, {
 			headers: {
-				Authorization: 'Basic ' + btoa(`${env.WP_API_USERNAME}:${env.WP_API_TOKEN}`),
+				Accept: 'text/html',
 				'User-Agent': 'Cloudflare-Worker/1.0',
 				Host: 'blogs.furman.edu',
 			},
@@ -55,30 +41,34 @@ async function getNavigationMenuItems(ctx: ExecutionContext): Promise<Array<z.in
 		clearTimeout(timeoutId);
 
 		if (!response.ok) {
-			try {
-				const errorData = await response.json();
-				console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`, errorData);
-			} catch {
-				console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`);
-			}
-			return [];
+			console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`);
+			return null;
 		}
 
-		const menuItems = await response.json();
-		if (!Array.isArray(menuItems)) {
-			throw new Error('Invalid response from menu-items endpoint');
-		}
+		// parse the HTML and extract the menu items
+		const homeHtml = await response.text();
+		const { document } = parseHTML(homeHtml);
+		const parse = interpretMenuItems.bind(null, document);
 
-		const validMenuItems = partialMenuItemSchema
-			.array()
-			.parse(menuItems)
-			.map((item) => ({
-				...item,
-				url: item.url.replace(BLOG_HOME, ''), // convert absolute URLs to relative URLs
-			}));
+		const secondaryLeftItems = parse('#menu-secondary-left li[itemtype="https://www.schema.org/SiteNavigationElement"] a');
+		const secondaryRightItems = parse('#menu-secondary-right li[itemtype="https://www.schema.org/SiteNavigationElement"] a');
+		const desktopNavbarItems = parse('#menu-main-desktop li[itemtype="https://www.schema.org/SiteNavigationElement"] a');
+		const desktopSideMenuItems = parse(
+			'#modal-slide-in-menu nav[aria-label="Expanded"] li[itemtype="https://www.schema.org/SiteNavigationElement"] a',
+		);
+		const mobileSideMenuItems = parse(
+			'#modal-slide-in-menu nav[aria-label="Mobile"] li[itemtype="https://www.schema.org/SiteNavigationElement"] a',
+		);
+		const menuItems = {
+			secondaryLeft: secondaryLeftItems,
+			secondaryRight: secondaryRightItems,
+			desktopNavbar: desktopNavbarItems,
+			desktopSideMenu: desktopSideMenuItems,
+			mobileSideMenu: mobileSideMenuItems,
+		};
 
 		// create a new response with the cache headers
-		const responseToCache = new Response(JSON.stringify(validMenuItems), {
+		const responseToCache = new Response(JSON.stringify(menuItems), {
 			headers: {
 				'Content-Type': 'application/json',
 				'Cache-Control': 'public, max-age=60', // cache for 1 minute
@@ -88,7 +78,7 @@ async function getNavigationMenuItems(ctx: ExecutionContext): Promise<Array<z.in
 		// store the response in the cache without blocking the response to the client
 		ctx.waitUntil(cache.put(cacheKey, responseToCache));
 
-		return validMenuItems;
+		return menuItems;
 	} catch (error) {
 		clearTimeout(timeoutId);
 		if (error instanceof Error && error.name === 'AbortError') {
@@ -99,41 +89,23 @@ async function getNavigationMenuItems(ctx: ExecutionContext): Promise<Array<z.in
 	}
 }
 
-const partialMenuItemSchema = z.object({
-	id: z.number(),
-	title: z.object({
-		rendered: z.string(),
-	}),
-	status: z.string(),
-	url: z.string(),
-	menu_order: z.number(),
-	menus: z.array(z.number()).or(z.number()),
-	parent: z.number(),
-});
-
 /**
- * Gets the navigation elements for a given menu tier (e.g. primary, secondaryRight, etc.)
- * by fetching the menu items from the WordPress API and filtering/sorting them based on
- * their menu order and which menu(s) to which they belong.
+ * Interprets the menu items from the given selector and returns an array of objects containing the title, link, and whether the link should open in a new tab.
+ * @param selector The CSS selector to use to find the menu items in the DOM. It should resolve to a list of anchor elements.
  */
-export async function getNavigationElements(menu: keyof typeof NAVIGATION_TIERS, ctx: ExecutionContext) {
-	const menuItems = await getNavigationMenuItems(ctx);
-
-	return (
-		menuItems
-			// limit to the selected menu tier
-			.filter((item) => {
-				const menus = Array.isArray(item.menus) ? item.menus : [item.menus];
-				return menus.includes(NAVIGATION_TIERS[menu]);
-			})
-			// sort by menu order
-			.sort((a, b) => (a.menu_order > b.menu_order ? 1 : -1))
-	);
+function interpretMenuItems(document: Document, selector: string) {
+	const elements = Array.from(document.querySelectorAll(selector));
+	return elements.map((element, index) => {
+		const title = element.textContent || undefined;
+		const url = element.getAttribute('href')?.replace(BLOG_HOME, '') ?? undefined;
+		const shouldOpenInNewTab = element.getAttribute('target') === '_blank' || title?.endsWith(' ↗');
+		return { title, url, shouldOpenInNewTab, order: index };
+	});
 }
 
-export function toLabelHrefPair(element: z.infer<typeof partialMenuItemSchema>) {
+export function toLabelHrefPair(element: ReturnType<typeof interpretMenuItems>[number]): NavigationListItem {
 	return {
-		label: element.title.rendered,
+		label: element.title || '',
 		href: element.url,
 	};
 }
@@ -198,12 +170,17 @@ export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl:
 }
 
 export async function getNavigationMenuData(ctx: ExecutionContext) {
-	const [primary, secondaryLeft, secondaryRight, menu] = await Promise.all([
-		getNavigationElements('primary', ctx),
-		getNavigationElements('secondaryLeft', ctx),
-		getNavigationElements('secondaryRight', ctx),
-		getNavigationElements('menu', ctx),
-	]);
+	const menuItems = await getNavigationMenuItems(ctx);
+	if (!menuItems) {
+		return {
+			primary: [],
+			secondaryLeft: [],
+			secondaryRight: [],
+			menu: [],
+		};
+	}
+
+	const { secondaryLeft, secondaryRight, desktopNavbar: primary, mobileSideMenu: menu } = menuItems;
 
 	return {
 		primary: primary.map(toLabelHrefPair).flatMap((item, index, array) => {
