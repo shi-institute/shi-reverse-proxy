@@ -74,6 +74,18 @@ export class ReverseProxy {
 		if (request.headers.get('Cache-Control') === 'no-cache') {
 			originUrl.searchParams.set('_cache-bust', Date.now().toString());
 		}
+
+		const xForwardedFor =
+			request.headers.get('X-Forwarded-For') || request.headers.get('CF-Connecting-IP') || request.headers.get('X-Real-IP');
+		const xForwardedProto = request.headers.get('X-Forwarded-Proto') || requestUrl.protocol.replace(':', '');
+		const xForwardedHost = request.headers.get('X-Forwarded-Host') || requestUrl.host;
+		if (xForwardedFor) {
+			requestHeaders.set('X-Forwarded-For', xForwardedFor);
+		}
+		requestHeaders.set('X-Forwarded-Proto', xForwardedProto);
+		requestHeaders.set('X-Forwarded-Host', xForwardedHost);
+		requestHeaders.set('Forwarded', `for=${xForwardedFor || ''};proto=${xForwardedProto};host=${xForwardedHost}`);
+
 		const originResponse = await fetch(originUrl, {
 			headers: requestHeaders,
 			method: request.method,
