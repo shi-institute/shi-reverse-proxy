@@ -1,6 +1,6 @@
 import { build } from 'esbuild';
 import sveltePlugin from 'esbuild-svelte';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { sveltePreprocess } from 'svelte-preprocess';
 import { Youch } from 'youch';
 
@@ -99,6 +99,9 @@ const headersFile = `/custom-elements.js
   Access-Control-Allow-Headers: *
 `;
 await writeFile('./dist/.cloudflare/public/_headers', headersFile);
+
+// copy over custom elements css
+await cp('./modules/custom-elements/components/custom-elements.css', './dist/.cloudflare/public/custom-elements.css', { force: true });
 
 /**
  * Reports an error by writing a stub worker that throws the error when invoked.

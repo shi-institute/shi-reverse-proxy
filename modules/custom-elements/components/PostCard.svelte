@@ -54,8 +54,8 @@
 
 	article {
 		display: block;
-		box-shadow: inset 0 0 0 1px #d8d8d8;
-		background-color: #fff;
+		box-shadow: inset 0 0 0 1px var(--shi-divider-color);
+		background-color: var(--shi-color-white);
 		color: #000;
 		padding: 16px;
 	}
@@ -78,7 +78,8 @@
 	}
 
 	h1 a {
-		color: #582c83;
+		color: var(--shi-color-purple);
+	}
 	}
 	h1 a:not(:hover):not(:active) {
 		text-decoration: none;
@@ -127,18 +128,19 @@
 		min-height: 38px;
 		display: inline-flex;
 		align-items: center;
-		background-color: #582c83;
-		border-color: #582c83;
-		color: #fff;
+		background-color: var(--shi-color-purple);
+		border-color: var(--shi-color-purple);
+		color: var(--shi-color--on-purple);
 	}
 	article :global(.btn:hover) {
-		background-color: #f1bf40;
-		color: black;
+		background-color: var(--shi-color-yellow);
+		color: var(--shi-color--on-yellow);
 		text-decoration: none;
 	}
 	article :global(.btn:active) {
-		background-color: #acddea;
-		color: black;
+		background-color: var(--shi-color-blue);
+		color: var(--shi-color--on-blue);
+	}
 	}
 
 	article :global(span.cpschool-read-more-link-holder) {

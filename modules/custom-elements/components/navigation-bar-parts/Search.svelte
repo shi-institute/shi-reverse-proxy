@@ -25,32 +25,32 @@
 <script lang="ts">
 	const defaultStyles = {
 		base: {
-			backgroundColor: '#f2f2f2',
-			color: '#000',
+			backgroundColor: 'var(--shi-color-near-white)',
+			color: 'var(--shi-color-black)',
 		},
 		hover: {
-			backgroundColor: '#582c83',
-			color: '#fff',
+			backgroundColor: 'var(--shi-color-purple)',
+			color: 'var(--shi-color--on-purple)',
 		},
 		active: {
-			backgroundColor: '#201545',
-			color: '#fff',
+			backgroundColor: 'var(--shi-color-midnight)',
+			color: 'var(--shi-color--on-midnight)',
 		},
 		focus: {
-			backgroundColor: '#582c83',
-			color: '#fff',
+			backgroundColor: 'var(--shi-color-purple)',
+			color: 'var(--shi-color--on-purple)',
 		},
 		submitHover: {
-			backgroundColor: '#acddea',
-			color: '#000',
+			backgroundColor: 'var(--shi-color-blue)',
+			color: 'var(--shi-color--on-blue)',
 		},
 		submitActive: {
 			backgroundColor: 'hsla(193, 60%, 70%, 1.00)',
-			color: '#000',
+			color: 'var(--shi-color--on-blue)',
 		},
 		submitFocus: {
-			backgroundColor: '#acddea',
-			color: '#000',
+			backgroundColor: 'var(--shi-color-blue)',
+			color: 'var(--shi-color--on-blue)',
 		},
 	} satisfies SearchProps['styles'];
 
@@ -136,7 +136,11 @@
 		border: none;
 		border-radius: 24px;
 		width: 100%;
-		transition: width 200ms ease-in-out;
+		transition:
+			width 200ms ease-in-out,
+			background-color 120ms ease,
+			color 120ms ease,
+			box-shadow 120ms ease;
 		font-family: 'Epilogue', sans-serif;
 		font-size: 0.95rem;
 		font-weight: 400;

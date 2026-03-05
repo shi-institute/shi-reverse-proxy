@@ -84,10 +84,14 @@
 			initialWidth="100%"
 			focusedWidth="100%"
 			styles={{
-				base: { backgroundColor: '#582c83', color: '#fff' },
-				hover: { backgroundColor: '#acddea', color: '#000' },
-				active: { backgroundColor: '#201545', color: '#fff' },
-				focus: { backgroundColor: '#201545', color: '#fff', boxShadow: '0 0 0 2px #acddea' },
+				base: { backgroundColor: 'var(--shi-color-purple)', color: 'var(--shi-color--on-purple)' },
+				hover: { backgroundColor: 'var(--shi-color-blue)', color: 'var(--shi-color--on-blue)' },
+				active: { backgroundColor: 'var(--shi-color-midnight)', color: 'var(--shi-color--on-midnight)' },
+				focus: {
+					backgroundColor: 'var(--shi-color-midnight)',
+					color: 'var(--shi-color--on-midnight)',
+					boxShadow: '0 0 0 2px var(--shi-color-blue)',
+				},
 			}}
 		/>
 
@@ -115,8 +119,8 @@
 		width: 60px;
 		height: 100%;
 		border: none;
-		background-color: #582c83;
-		color: white;
+		background-color: var(--shi-color-purple);
+		color: var(--shi-color--on-purple);
 		transition:
 			background-color 120ms ease,
 			box-shadow 120ms ease;
@@ -130,11 +134,12 @@
 		flex-shrink: 0;
 	}
 	.menu-button:hover {
-		background-color: #201545;
+		background-color: var(--shi-color-midnight);
+		color: var(--shi-color--on-midnight);
 	}
 	.menu-button:active {
-		background-color: #aedce9;
-		color: black;
+		background-color: var(--shi-color-blue);
+		color: var(--shi-color--on-blue);
 	}
 
 	dialog {
@@ -148,8 +153,8 @@
 		box-sizing: border-box;
 		position: fixed;
 		inset: 0 0 0 auto;
-		background-color: #201545;
-		color: #fff;
+		background-color: var(--shi-color-midnight);
+		color: var(--shi-color--on-midnight);
 		box-shadow:
 			0px 32px 64px hsla(0, 0%, 0%, 0.27),
 			0px 2px 21px hsla(0, 0%, 0%, 0.27);
@@ -224,7 +229,8 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 8px;
-		background-color: #201545;
+		background-color: var(--shi-color-midnight);
+		color: var(--shi-color--on-midnight);
 		position: sticky;
 		top: 0;
 	}
@@ -239,17 +245,19 @@
 	}
 
 	.nav-close-button {
-		background-color: #201545;
+		background-color: var(--shi-color-midnight);
+		color: var(--shi-color--on-midnight);
 		height: 60px;
 		padding-block: 10px 6px;
 		user-select: none;
 	}
 	.nav-close-button:hover {
-		background-color: #582c83;
+		background-color: var(--shi-color-purple);
+		color: var(--shi-color--on-purple);
 	}
 	.nav-close-button:active {
-		background-color: #acddea;
-		color: #000;
+		background-color: var(--shi-color-blue);
+		color: var(--shi-color--on-blue);
 	}
 
 	.side-nav-content {
@@ -270,26 +278,26 @@
 	}
 
 	.side-nav-content :global(a span) {
-		color: #e0e0e0;
+		color: oklch(from var(--shi-color-white) calc(l - 0.1) c h);
 	}
 	.side-nav-content :global(a.current) {
 		padding-bottom: 0.25rem;
 	}
 	.side-nav-content :global(a.current span) {
-		color: #acddea;
-		border-bottom-color: #acddea;
+		color: var(--shi-color-blue);
+		border-bottom-color: oklch(from var(--shi-color-blue) calc(l + 0.01) c h);
 	}
 	.side-nav-content :global(a:hover span) {
-		color: hsla(268, 47%, 84%, 1);
-		border-bottom-color: hsla(268, 47%, 74%, 1);
+		color: oklch(from var(--shi-color-purple) calc(l + 0.4) calc(c - 0.08) h);
+		border-bottom-color: oklch(from var(--shi-color-purple) calc(l + 0.35) calc(c - 0.08) h);
 	}
 	.side-nav-content :global(a:active span) {
-		color: hsla(268, 47%, 74%, 1);
-		border-bottom-color: hsla(268, 47%, 64%, 1);
+		color: oklch(from var(--shi-color-purple) calc(l + 0.3) calc(c - 0.08) h);
+		border-bottom-color: oklch(from var(--shi-color-purple) calc(l + 0.25) calc(c - 0.08) h);
 	}
 
 	.side-nav-content :global(hr) {
-		border-color: #582c83;
+		border-color: var(--shi-color-purple);
 		width: 50% !important;
 		margin-top: 0.5rem;
 		padding-top: 0.5rem;

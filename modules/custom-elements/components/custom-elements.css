@@ -1,0 +1,21 @@
+:root {
+	--shi-color-purple: #582c83;
+	--shi-color-midnight: #201545;
+	--shi-color-white: #fff;
+	--shi-color-black: #000;
+	--shi-color-blue: #aadeeb;
+	--shi-color-red: #e3322b;
+	--shi-color-yellow: #f2be1a;
+	--shi-color-green: #669933;
+	--shi-color-gray: #54585a;
+	--shi-color-near-white: #f2f2f2;
+
+	--shi-color--on-purple: #fff;
+	--shi-color--on-midnight: #fff;
+	--shi-color--on-blue: #000;
+	--shi-color--on-red: #fff;
+	--shi-color--on-yellow: #000;
+	--shi-color--on-green: #fff;
+
+	--shi-divider-color: #d8d8d8;
+}

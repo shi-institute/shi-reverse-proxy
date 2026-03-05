@@ -151,6 +151,7 @@ export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl:
 		${await secondaryMenuBarHtml}
 		${await primaryMenuBarHtml}
 		<script src="/custom-elements.js" type="module"></script>
+		<link rel="stylesheet" href="/custom-elements.css"></link>
 		<style>
 			@view-transition {
 				navigation: auto;

@@ -99,22 +99,26 @@
 		user-select: none;
 	}
 	a.current span {
-		border-bottom-color: #582c83;
-		color: #582c83;
+		border-bottom-color: var(--shi-color-purple);
+		color: var(--shi-color-purple);
 	}
 	a:hover span {
-		border-bottom-color: hsla(268, 47%, 44%, 1);
-		color: hsla(268, 47%, 34%, 1);
+		border-bottom-color: var(--shi-color-purple);
+		color: var(--shi-color-purple);
+	}
+	a.current:hover:not(:active) span {
+		border-bottom-color: oklch(from var(--shi-color-purple) calc(l + 0.1) c h);
+		color: oklch(from var(--shi-color-purple) calc(l + 0.1) c h);
 	}
 	a:active span {
-		border-bottom-color: hsla(268, 47%, 34%, 1);
-		color: hsla(268, 47%, 24%, 1);
+		border-bottom-color: var(--shi-color-midnight);
+		color: var(--shi-color-midnight);
 	}
 
 	hr {
 		border: none;
 		border-style: solid;
-		border-color: #d8d8d8;
+		border-color: var(--shi-divider-color);
 		border-width: 0;
 		border-left-width: 1px;
 		height: 30px;
