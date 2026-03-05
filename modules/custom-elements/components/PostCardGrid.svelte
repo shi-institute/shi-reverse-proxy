@@ -11,7 +11,7 @@
 />
 
 <script lang="ts" module>
-	import type { Posts, wordpressPostSchema } from '../../worker/api';
+	import type { Posts } from '../../worker/api';
 	import { fetchWithHydration } from '../utils';
 	import { url } from '../utils/navigation';
 	import PostCard from './PostCard.svelte';
@@ -39,8 +39,6 @@
 		}
 		return queryUrl;
 	});
-
-	type F = typeof wordpressPostSchema;
 
 	const fetcher = await fetchWithHydration<Posts>('post-data', () => queryUrl);
 </script>

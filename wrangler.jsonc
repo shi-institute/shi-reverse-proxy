@@ -7,15 +7,12 @@
 	"name": "shi-reverse-proxy",
 	"main": "dist/.cloudflare/worker/index.js",
 	"compatibility_date": "2026-02-23",
-	"compatibility_flags": [
-		"nodejs_compat",
-		"nodejs_compat_populate_process_env",
-	],
+	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
 	"observability": {
 		"enabled": true,
 		"logs": {
-			"enabled": true
-		}
+			"enabled": true,
+		},
 	},
 	"build": {
 		"watch_dir": "./modules",
@@ -23,60 +20,60 @@
 	},
 	"assets": {
 		"directory": "./dist/.cloudflare/public/",
-		"binding": "ASSETS"
+		"binding": "ASSETS",
 	},
 	"env": {
 		"development": {
 			"vars": {
 				"DEVELOPMENT": true,
-				"PRODUCTION": false
+				"PRODUCTION": false,
 			},
 			"services": [
 				{
 					"binding": "SELF",
-					"service": "shi-reverse-proxy-development"
-				}
+					"service": "shi-reverse-proxy-development",
+				},
 			],
-			"routes": []
+			"routes": [],
 		},
 		"production": {
 			"vars": {
 				"DEVELOPMENT": false,
-				"PRODUCTION": true
+				"PRODUCTION": true,
 			},
 			"services": [
 				{
 					"binding": "SELF",
-					"service": "shi-reverse-proxy-production"
-				}
+					"service": "shi-reverse-proxy-production",
+				},
 			],
 			"routes": [
 				{
 					"pattern": "shi.institute",
-					"custom_domain": true
+					"custom_domain": true,
 				},
 				{
 					"pattern": "www.shi.institute",
-					"custom_domain": true
+					"custom_domain": true,
 				},
 				{
 					"pattern": "ns-plots-24.shi.institute",
-					"custom_domain": true
+					"custom_domain": true,
 				},
 				{
 					"pattern": "dst-temp.shi.institute",
-					"custom_domain": true
+					"custom_domain": true,
 				},
 			],
 			"observability": {
 				"enabled": false,
 				"logs": {
-					"enabled": false
-				}
-			}
-		}
+					"enabled": false,
+				},
+			},
+		},
 	},
 	"placement": {
-		"hostname": "blogs.furman.edu"
-	}
+		"hostname": "blogs.furman.edu",
+	},
 }
