@@ -7,8 +7,6 @@
 		"lib": [
 			"es2024"
 		],
-		/* Specify what JSX code is generated. */
-		"jsx": "react-jsx",
 		/* Specify what module code is generated. */
 		"module": "esnext",
 		/* Specify how TypeScript looks up a file from a given module specifier. */
@@ -29,14 +27,16 @@
 		"forceConsistentCasingInFileNames": true,
 		/* Enable all strict type-checking options. */
 		"strict": true,
+		"noImplicitAny": true,
 		"noUncheckedIndexedAccess": true,
 		"noUncheckedSideEffectImports": true,
-		"noImplicitAny": true,
+		"verbatimModuleSyntax": true,
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
 		"types": [
 			"./worker-configuration.d.ts",
 			"node",
+			"svelte",
 			"./typings.d.ts",
 			"./globals.d.ts"
 		]
@@ -46,8 +46,12 @@
 	],
 	"include": [
 		"worker-configuration.d.ts",
+		"esbuild.config.mjs",
 		"src/**/*.ts",
-		"static/**/*.js",
-		"static/custom-elements/shi-primary-menu-bar.js"
+		"src/**/*.svelte",
+		"src/**/*.js",
+		"modules/**/*.ts",
+		"modules/**/*.svelte",
+		"modules/**/*.js",
 	]
 }

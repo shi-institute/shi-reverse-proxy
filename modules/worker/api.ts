@@ -78,7 +78,10 @@ export default {
  * Gets posts from the WordPress REST API with optional filtering by category and tag IDs.
  * Also fetches media details for posts with a featured image.
  */
-export async function getPosts(categoryIds: number[] = [], tagIds: number[] = []) {
+export async function getPosts(
+	categoryIds: number[] = [],
+	tagIds: number[] = [],
+): Promise<(z.infer<typeof wordpressPostSchema> & { media?: z.infer<typeof wordpressMediaSchema> | null })[]> {
 	const postsQueryUrl = new URL(`${BLOG}/wp-json/wp/v2/posts`);
 	if (tagIds.length > 0) {
 		postsQueryUrl.searchParams.set('tags', tagIds.join(','));
@@ -118,6 +121,7 @@ export async function getPosts(categoryIds: number[] = [], tagIds: number[] = []
 	return postsWithMedia;
 }
 
+export type PostMediaDetails = z.infer<typeof wordpressMediaSchema>['media_details'];
 export type Post = Awaited<ReturnType<typeof getPosts>>[number];
 export type Posts = Post[];
 

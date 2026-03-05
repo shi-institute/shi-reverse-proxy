@@ -1,5 +1,8 @@
 {
 	"files.associations": {
 		"wrangler.json": "jsonc"
+	},
+	"svelte.plugin.svelte.compilerWarnings": {
+		"options_missing_custom_element": "ignore",
 	}
 }

@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import z from 'zod';
-import { ssrCustomElement } from './elements-loader.js';
+import type { NavigationListItem } from '../custom-elements/components/navigation-bar-parts/NavigationList.svelte';
+import { render } from '../custom-elements/server.js';
 
 const NAVIGATION_TIERS = {
 	/**
@@ -152,33 +153,32 @@ const shiFontFaces = `
  * the menu HTML is available immedeiately on page load. The menu is upgraded to a custom element on the client side
  * once the custom elements script is loaded.
  */
-export async function getInjectableNavigation(ctx: ExecutionContext) {
+export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl: URL) {
 	const menuData = await getNavigationMenuData(ctx);
 
-	const primaryMenuBarHtml = ssrCustomElement(
-		'shi-primary-menu-bar',
-		() => import('../static/custom-elements/shi-primary-menu-bar.js').then((mod) => mod.ShiPrimaryNavigationBar),
-		{
-			items: menuData.primary,
-			'side-nav-items': menuData.menu,
-		},
+	function transformHref(href: string) {
+		if (href === '/') {
+			return '/shi-institute';
+		}
+		return href;
+	}
+
+	const primaryMenuBarHtml = render(
+		'PrimaryNavigationBar',
+		{ props: { bar: menuData.primary, menu: menuData.menu, transformHref } },
+		{ url: currentUrl },
 	);
 
-	const secondaryMenuBarHtml = ssrCustomElement(
-		'shi-secondary-menu-bar',
-		() => import('../static/custom-elements/shi-secondary-menu-bar.js').then((mod) => mod.ShiSecondaryNavigationBar),
-		{
-			'left-items': menuData.secondaryLeft,
-			'right-items': menuData.secondaryRight,
-		},
+	const secondaryMenuBarHtml = render(
+		'SecondaryNavigationBar',
+		{ props: { left: menuData.secondaryLeft, right: menuData.secondaryRight, transformHref } },
+		{ url: currentUrl },
 	);
 
 	return `
 		${await secondaryMenuBarHtml}
 		${await primaryMenuBarHtml}
-		<script type="module">
-			import '/custom-elements/define.js';
-		</script>
+		<script src="/custom-elements.js" type="module"></script>
 		<style>
 			@view-transition {
 				navigation: auto;
@@ -209,7 +209,7 @@ export async function getNavigationMenuData(ctx: ExecutionContext) {
 		primary: primary.map(toLabelHrefPair).flatMap((item, index, array) => {
 			// add a divider before services and after projects
 			if (index === array.length - 3 || index === array.length - 1) {
-				return [item, { label: 'divider', href: '' }];
+				return [item, { type: 'divider' } as NavigationListItem];
 			}
 
 			return item;

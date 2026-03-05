@@ -1,7 +1,7 @@
 import { parseHTML } from 'linkedom';
+import { render } from '../custom-elements/server';
 import { ReverseProxy } from './ReverseProxy';
 import handleApiRequest from './api';
-import { ssrCustomElement } from './elements-loader';
 import { getInjectableNavigation, getNavigationMenuData } from './menu';
 import { redirects } from './redirects';
 
@@ -11,7 +11,7 @@ export default {
 			const requestUrl = new URL(request.url);
 
 			// redirect origins to shi.institute
-			if (env.DEVELOPMENT !== 'true' && requestUrl.hostname !== 'shi.institute') {
+			if (env.PRODUCTION && requestUrl.hostname !== 'shi.institute') {
 				return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://shi.institute'), 307);
 			}
 
@@ -69,12 +69,6 @@ export default {
 								`<style>#app > .alert, #app > header, #app > footer, body > footer, .section-menu-wrapper, #section-menu-container { display: none !important; }</style></head>`,
 							);
 
-							// inject our own navigation elements
-							body = body.replace(
-								`<!-- End Google Tag Manager (noscript) -->`,
-								`<!-- End Google Tag Manager (noscript) -->${await getInjectableNavigation(ctx)}`,
-							);
-
 							// Replace links to <origin>/<pathname> where the pathname does not start with /shi-institute.
 							// These are links that point to part of the furman.edu website that we are not proxying.
 							body = body.replace(/http:\/\/localhost:8787\/([^"' ]*)/g, (match, path) => {
@@ -86,6 +80,12 @@ export default {
 							body = body.replace(/(href|src)=["']\/(?!shi-institute)([^"' ]*)["']/g, (match, attr, path) => {
 								return `${attr}="https://www.furman.edu/${path}"`;
 							});
+
+							// inject our own navigation elements
+							body = body.replace(
+								`<!-- End Google Tag Manager (noscript) -->`,
+								`<!-- End Google Tag Manager (noscript) -->${await getInjectableNavigation(ctx, requestUrl)}`,
+							);
 						}
 
 						return body;
@@ -110,66 +110,46 @@ export default {
 					'↗': '↗︎',
 
 					// inject our own navigation elements
-					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end -->${await getInjectableNavigation(ctx)}`,
+					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end -->${await getInjectableNavigation(ctx, requestUrl)}`,
 
 					// hide built-in navigation elemenets
 					'</head>': '<style>#navbar-secondary,#wrapper-navbar-main {display: none !important;}</style></head>',
 				},
 				async afterBodyReplacements(body, requestUrl, contentType) {
 					if (contentType.includes('text/html') && typeof body === 'string') {
-						if (requestUrl.pathname === '/projects/') {
-							// hydrate shi-post-card-grid
-							const { document } = parseHTML(body);
-							const grid = document.querySelector('shi-post-card-grid');
-							if (grid) {
-								const tags =
-									requestUrl.searchParams
-										.get('tag')
-										?.split(',')
-										.map((s) => parseInt(s.trim()))
-										.filter((n) => Number.isInteger(n)) ?? [];
+						const { document } = parseHTML(body);
 
-								const currentAttributes = Object.fromEntries(Array.from(grid.attributes).map((attr) => [attr.name, attr.value]));
-								currentAttributes['tag-ids'] = JSON.stringify(tags);
+						// SSR for PostCardGrid
+						const grids = document.querySelectorAll('shi-post-card-grid');
+						for (const grid of Array.from(grids)) {
+							const currentAttributes = Object.fromEntries(Array.from(grid.attributes).map((attr) => [attr.name, attr.value]));
 
-								const ssrGrid = await ssrCustomElement(
-									'shi-post-card-grid',
-									() => import('../static/custom-elements/shi-post-card-grid.js').then((mod) => mod.ShiPostCardGrid),
-									currentAttributes,
-									{
-										async wait(element) {
-											// wait for the element to fetch its data and render
-											await new Promise((resolve) => {
-												element.addEventListener('posts-fetched', (event) => {
-													resolve(undefined);
-												});
+							const tags =
+								requestUrl.searchParams
+									.get('tag')
+									?.split(',')
+									.map((s) => parseInt(s.trim()))
+									.filter((n) => Number.isInteger(n)) ?? [];
 
-												// or resolve after 5 seconds
-												setTimeout(() => {
-													resolve(undefined);
-												}, 5000);
-											});
-										},
-										polyfills: {
-											location: {
-												// @ts-expect-error
-												search: requestUrl.search,
-												href: requestUrl.href,
-												origin: requestUrl.origin,
-												protocol: requestUrl.protocol,
-												host: requestUrl.host,
-												hostname: requestUrl.hostname,
-												port: requestUrl.port,
-												pathname: requestUrl.pathname,
-												hash: requestUrl.hash,
-											},
-										},
+							const ssrGrid = await render(
+								'PostCardGrid',
+								{
+									props: {
+										minColumnWidth: currentAttributes['min-column-width'] ?? undefined,
+										maxColumnWidth: currentAttributes['max-column-width'] ?? undefined,
+										gap: currentAttributes['gap'] ?? undefined,
+										categoryIds: currentAttributes['category-ids'] ? JSON.parse(currentAttributes['category-ids']) : [],
+										tagIds: tags,
 									},
-								);
-								grid.outerHTML = ssrGrid;
-							}
-							body = document.documentElement.outerHTML;
+								},
+								{
+									url: requestUrl,
+								},
+							);
+							grid.outerHTML = ssrGrid;
 						}
+
+						body = document.documentElement.outerHTML;
 					}
 
 					return body;
