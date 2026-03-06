@@ -16,12 +16,13 @@ export default {
 
 			if (id) {
 				return new Response(JSON.stringify({ id }), {
-					headers: { 'Content-Type': 'application/json' },
+					headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
 					status: 200,
 					statusText: 'OK',
 				});
 			} else {
 				return new Response(`No post or page found for path: ${path}`, {
+					headers: { 'Access-Control-Allow-Origin': '*' },
 					status: 404,
 					statusText: 'Not Found',
 				});
@@ -66,7 +67,7 @@ export default {
 
 			const posts = await getPosts(categoryIdsArray, tagIdsArray);
 			return new Response(JSON.stringify(posts).replaceAll('https://blogs.furman.edu/shi-applied-research', ''), {
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
 				status: 200,
 				statusText: 'OK',
 			});

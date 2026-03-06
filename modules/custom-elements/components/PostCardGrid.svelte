@@ -38,9 +38,11 @@
 		design,
 	}: PostCardGridProps = $props();
 
+	const isBlog = $derived($url.origin.includes('https://blogs.furman' + '.edu'));
+	const prefix = $derived(isBlog ? '/shi-applied-research' : '');
+
 	const queryUrl = $derived.by(() => {
-		const isBlog = $url.origin.includes('https://blogs.furman' + '.edu');
-		const queryUrl = new URL(isBlog ? '/shi-applied-research/.api/posts' : '/.api/posts', $url.origin);
+		const queryUrl = new URL(isBlog ? 'https://shi.institute/.api/posts' : '/.api/posts', $url.origin);
 		if (categoryIds.length > 0) {
 			queryUrl.searchParams.set('categories', categoryIds.join(','));
 		}
@@ -66,12 +68,23 @@
 					<PostCard
 						title={post.title.rendered}
 						excerpt={post.excerpt.rendered}
-						href={post.link}
+						href={prefix + post.link}
 						image={post.media
 							? {
 									alt_text: post.media.alt_text,
-									source_url: post.media.source_url,
-									media_details: post.media.media_details,
+									source_url: prefix + post.media.source_url,
+									media_details: {
+										...post.media.media_details,
+										sizes: Object.fromEntries(
+											Object.entries(post.media.media_details.sizes || {}).map(([key, value]) => [
+												key,
+												{
+													...value,
+													source_url: prefix + value.source_url,
+												},
+											]),
+										),
+									},
 								}
 							: undefined}
 						{design}
