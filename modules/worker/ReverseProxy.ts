@@ -84,6 +84,8 @@ export class ReverseProxy {
 		}
 		requestHeaders.set('X-Forwarded-Proto', xForwardedProto);
 		requestHeaders.set('X-Forwarded-Host', xForwardedHost);
+		requestHeaders.set('X-Shi-Forwarded-Host', xForwardedHost);
+		requestHeaders.set('X-Shi-Forwarded-Proto', xForwardedProto);
 		requestHeaders.set('Forwarded', `for=${xForwardedFor || ''};proto=${xForwardedProto};host=${xForwardedHost}`);
 
 		const originResponse = await fetch(originUrl, {
