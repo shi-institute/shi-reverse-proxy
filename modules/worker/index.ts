@@ -100,6 +100,7 @@ export default {
 					'blogs.furman.edu/shi-applied-research': '',
 					'blogs.furman.edu/': 'shi.institute/', // search results link label
 					'shi.institute/Shibboleth.sso': 'blogs.furman.edu/Shibboleth.sso', // fix login redirect
+					'wpmucdn.com/shi.institute': 'wpmucdn.com/blogs.furman.edu',
 					[`"This is an internal version of The Shi Institute's website. Use the live version (https://shi.institute) when sharing or distributing links."`]:
 						'',
 
