@@ -1,4 +1,5 @@
 import { parseHTML } from 'linkedom';
+import customElementsCss from '../custom-elements/components/custom-elements.css';
 import type { NavigationListItem } from '../custom-elements/components/navigation-bar-parts/NavigationList.svelte';
 import { render } from '../custom-elements/server.js';
 
@@ -110,16 +111,6 @@ export function toLabelHrefPair(element: ReturnType<typeof interpretMenuItems>[n
 	};
 }
 
-const shiFontFaces = `
-@font-face {
-	font-family: 'Epilogue';
-	font-style: normal;
-	font-weight: 100 900;
-	font-display: swap;
-	src: url(/wp-content/themes/cpschool/fonts/epilogue/fonts/Epilogue-VariableFont_wght.ttf) format('woff2');
-}
-`;
-
 /**
  * Gets the HTML and script for the Shi Institute custom menus. The HTML uses declarative shadow DOM to ensure that
  * the menu HTML is available immedeiately on page load. The menu is upgraded to a custom element on the client side
@@ -151,12 +142,11 @@ export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl:
 		${await secondaryMenuBarHtml}
 		${await primaryMenuBarHtml}
 		<script src="/custom-elements.js" type="module"></script>
-		<link rel="stylesheet" href="/custom-elements.css"></link>
+		<style>${customElementsCss}</style>
 		<style>
 			@view-transition {
 				navigation: auto;
 			}
-			${shiFontFaces}
 		</style>
 		<script type="module">
 			// on Meta + Shift + E, launch the WordPress editor for current page or post if it exists

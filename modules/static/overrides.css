@@ -1,0 +1,200 @@
+/* Apply standard Furman fonts to the website */
+@import url('https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap');
+html > body {
+	font-family: 'Epilogue', sans-serif;
+	font-optical-sizing: auto;
+	font-style: normal;
+}
+html > body :where(.h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6) {
+	font-family: 'Oswald', sans-serif;
+	font-optical-sizing: auto;
+	font-style: normal;
+}
+
+/* This version of Epilogue has more unicode coverage than the Google Fonts version.
+In particular, it includes the ↗ character that we use to denote links that open
+in a new tab. */
+@font-face {
+	font-family: 'Epilogue';
+	font-style: normal;
+	font-weight: 100 900;
+	font-display: swap;
+	src: url(/wp-content/themes/cpschool/fonts/epilogue/fonts/Epilogue-VariableFont_wght.ttf) format('woff2');
+}
+
+/* By default, the WordPress theme adds margin on too many sides of the flaoted
+figure. Since the figure is usually surrounded by content that also has margin,
+we need to remove the top margin so that the top of the figure is aligned with
+the first content to its side. */
+.entry-content figure.alignright {
+	margin-top: 0;
+}
+.entry-content figure.alignleft {
+	margin-top: 0;
+}
+
+/* The default margin, 6em, is way too much */
+@media (min-width: 782px) {
+	.alignfull,
+	.alignwide,
+	.wp-block-separator.is-style-wide {
+		margin-block: 3rem;
+	}
+}
+
+/* make the headers less big */
+.jumbotron {
+	padding-block: 32px !important;
+}
+#hero-main.jumbotron .hero-content {
+	min-height: 32px;
+}
+
+/* show a divider after the hero header
+that matches the divider on the navigation bars */
+#hero-main {
+	box-shadow: inset 0 -1px 0 0 #d8d8d8 !important;
+}
+
+/* The default padding, 6em, is way too much */
+:root {
+	--main-content-padding-block: 3rem;
+}
+.wrapper {
+	padding-block: var(--main-content-padding-block);
+}
+
+/* styles for single post pages */
+body.post-template-default {
+	header#hero-main {
+		display: contents;
+
+		/* Never show the featured image. On pages that need to show their featured
+		image, editors should insert a featured image block. */
+		.hero-featured-image-holder {
+			display: none;
+		}
+
+		/* Hide the byline if it is by admin. We use admin as the
+		indicator for authorless posts. Other authors should be
+		properly specified. */
+		.page-meta .post-author:has(a[href$='/author/admin/']) {
+			display: none;
+		}
+
+		.page-meta {
+			margin-bottom: 1rem;
+		}
+		h1 + .page-meta {
+			margin-top: -0.75rem;
+		}
+
+		/* Hide the categories if it includes Uncategorized or Projects.
+		Uncategorized does not need to be labeled, and the projects
+		pages are not meant to be browsed by category. */
+		.page-meta .post-categories:has(a[href$='/category/uncategorized/']),
+		.page-meta .post-categories:has(a[href$='/category/projects/']) {
+			display: none;
+		}
+	}
+
+	/* Move the padding to above the header so that the header's
+	heading and other content flows with the rest of the page content. */
+	header#hero-main + .wrapper {
+		padding-top: 0;
+	}
+	header#hero-main > .hero-content {
+		min-height: 0 !important;
+		padding-top: var(--main-content-padding-block) !important;
+	}
+}
+
+/* If the page content is smaller than the viewport, there will be
+a gap after the footer. Since the footer is black, we want to ensure
+that the gap is also black. */
+body {
+	background-color: black;
+}
+.site {
+	background-color: white;
+}
+
+/* The site alert padding and text are too large by default. */
+#site-alert {
+	font-size: 0.85em;
+	padding: 4px 16px;
+
+	button.close {
+		padding: 0;
+		aspect-ratio: 1;
+		inset: 0 0 0 auto;
+		color: var(--shi-color--on-purple) !important;
+		cursor: default;
+		transition:
+			background-color 120ms ease,
+			color 120ms ease;
+
+		i {
+			line-height: 16px;
+			font-size: 16px;
+		}
+
+		&:hover {
+			background-color: var(--shi-color-yellow);
+			color: var(--shi-color--on-yellow) !important;
+		}
+		&:active {
+			background-color: var(--shi-color-blue);
+			color: var(--shi-color--on-blue) !important;
+		}
+	}
+}
+
+/* Use Furman-style buttons hover and press effects. Note that we do
+not specify a background-color or text color on the default state
+since the button may have been configured to have a different default
+style via the blocks editor. */
+html #page :where(.btn, button[type='submit'], .wp-block-button .wp-block-button__link) {
+	transition:
+		background-color 120ms ease,
+		box-shadow 120ms ease;
+	min-height: 38px;
+	display: inline-flex;
+	align-items: center;
+}
+html #page :where(.btn, button[type='submit'], .wp-block-button .wp-block-button__link):hover {
+	box-shadow: none !important;
+}
+html #page .wp-block-button.is-style-outline .wp-block-button__link {
+	--box-shadow-color: var(--shi-divider-color);
+	box-shadow: inset 0 0 0 1px var(--box-shadow-color);
+	border-width: 0 !important; /* use box-shadow instead */
+	color: inherit !important;
+}
+html #page :where(.btn.btn-secondary, button[type='submit'], .wp-block-button .wp-block-button__link):hover {
+	background-color: var(--shi-color-yellow);
+	--box-shadow-color: var(--shi-color-yellow);
+	color: var(--shi-color--on-yellow);
+	text-decoration: none;
+}
+html #page :where(.btn.btn-secondary, button[type='submit'], .wp-block-button .wp-block-button__link):active {
+	background-color: var(--shi-color-blue);
+	--box-shadow-color: var(--shi-color-blue);
+	color: var(--shi-color--on-blue);
+}
+
+/* By default, the footer has a small shadow above itself.
+Since we use border-lines instead of shadows elsewhere in our
+css, we need to remove the shadow */
+footer {
+	box-shadow: none !important;
+}
+
+/* the default footer padding is excessive */
+footer {
+	padding-block: 16px !important;
+}
+#footer-block > .wp-block-group {
+	padding-block: 0 !important;
+	margin-block: 0 !important;
+}

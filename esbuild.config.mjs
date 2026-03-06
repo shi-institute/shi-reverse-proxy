@@ -21,8 +21,7 @@ const commonEsbuildOptions = {
 		CUSTOM_ELEMENT_NAMESPACE: JSON.stringify('shi'),
 	},
 	loader: {
-		'.png': 'file',
-		'.svg': 'file',
+		'.css': 'text',
 	},
 };
 
@@ -97,11 +96,24 @@ const headersFile = `/custom-elements.js
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Access-Control-Allow-Headers: *
+
+/custom-elements.css
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: *
+
+/static/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: *
 `;
 await writeFile('./dist/.cloudflare/public/_headers', headersFile);
 
 // copy over custom elements css
 await cp('./modules/custom-elements/components/custom-elements.css', './dist/.cloudflare/public/custom-elements.css', { force: true });
+
+// copy static files
+await cp('./modules/static/', './dist/.cloudflare/public/static', { recursive: true, force: true });
 
 /**
  * Reports an error by writing a stub worker that throws the error when invoked.

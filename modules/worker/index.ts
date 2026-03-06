@@ -1,6 +1,7 @@
 import { parseHTML } from 'linkedom';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { render } from '../custom-elements/server';
+import blogCssOverrides from '../static/overrides.css';
 import { ReverseProxy } from './ReverseProxy';
 import handleApiRequest from './api';
 import { getInjectableNavigation, getNavigationMenuData } from './menu';
@@ -105,8 +106,11 @@ export default {
 					// use the text presentation form of the arrow to stop it from converting to an emoji variant: https://stackoverflow.com/a/54026677
 					'↗': '↗︎',
 
+					// inject our own stylesheet to override the WordPress theme's styles
+					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end --><!-- injected-nav --><style>${blogCssOverrides}</style>`,
+
 					// inject our own navigation elements
-					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end -->${await getInjectableNavigation(ctx, requestUrl)}`,
+					'<!-- injected-nav -->': `<!-- injected-nav -->${await getInjectableNavigation(ctx, requestUrl)}`,
 
 					// hide built-in navigation elemenets
 					'</head>': '<style>#navbar-secondary,#wrapper-navbar-main {display: none !important;}</style></head>',
