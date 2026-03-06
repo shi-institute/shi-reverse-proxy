@@ -6,6 +6,7 @@
 			gap: { reflect: true, type: 'String', attribute: 'gap' },
 			categoryIds: { reflect: true, type: 'Array', attribute: 'category-ids' },
 			tagIds: { reflect: true, type: 'Array', attribute: 'tag-ids' },
+			design: { reflect: true, type: 'String', attribute: 'design' },
 		},
 	}}
 />
@@ -14,7 +15,7 @@
 	import type { Posts } from '../../worker/api';
 	import { fetchWithHydration } from '../utils';
 	import { url } from '../utils/navigation';
-	import PostCard from './PostCard.svelte';
+	import PostCard, { type PostCardProps } from './PostCard.svelte';
 
 	export interface PostCardGridProps {
 		minColumnWidth?: string;
@@ -22,11 +23,20 @@
 		gap?: string;
 		categoryIds?: number[];
 		tagIds?: number[];
+		/** The design of the post cards. See PostCard for more information. */
+		design?: PostCardProps['design'];
 	}
 </script>
 
 <script lang="ts">
-	let { minColumnWidth = '250px', maxColumnWidth = '1fr', gap = '1rem', categoryIds = [], tagIds = [] }: PostCardGridProps = $props();
+	let {
+		minColumnWidth = '250px',
+		maxColumnWidth = '1fr',
+		gap = '1rem',
+		categoryIds = [],
+		tagIds = [],
+		design,
+	}: PostCardGridProps = $props();
 
 	const queryUrl = $derived.by(() => {
 		const isBlog = $url.origin.includes('https://blogs.furman' + '.edu');
@@ -64,6 +74,7 @@
 									media_details: post.media.media_details,
 								}
 							: undefined}
+						{design}
 					/>
 				</div>
 			{/each}
@@ -97,5 +108,9 @@
 		border-radius: 4px;
 		font-size: 1.25rem;
 		font-weight: 600;
+	}
+
+	div[data-post-id] {
+		display: contents;
 	}
 </style>

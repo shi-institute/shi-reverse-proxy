@@ -5,6 +5,7 @@
 			excerpt: { reflect: true, type: 'String', attribute: 'excerpt' },
 			href: { reflect: true, type: 'String', attribute: 'href' },
 			image: { reflect: true, type: 'Object', attribute: 'image' },
+			design: { reflect: true, type: 'String', attribute: 'design' },
 		},
 	}}
 />
@@ -22,14 +23,24 @@
 			source_url: string;
 			media_details: PostMediaDetails;
 		};
+		/**
+		 * The design of the post card.
+		 *
+		 * When set to default, the title will be purple and the button will be purple with white text.
+		 *
+		 * When set to neutral, the title will be black instead of purple, and the button will
+		 * be white with a gray outline instead of purple.
+		 *
+		 */
+		design?: 'default' | 'neutral';
 	}
 </script>
 
 <script lang="ts">
-	let { title = '', excerpt = '', href, image }: PostCardProps = $props();
+	let { title = '', excerpt = '', href, image, design = 'default' }: PostCardProps = $props();
 </script>
 
-<article>
+<article class:design-neutral={design === 'neutral'}>
 	{#if image}
 		<a {href}>
 			<img src={image.source_url} alt={image.alt_text} />
@@ -57,7 +68,8 @@
 		box-shadow: inset 0 0 0 1px var(--shi-divider-color);
 		background-color: var(--shi-color-white);
 		color: #000;
-		padding: 16px;
+		--padding: 24px;
+		padding: var(--padding);
 	}
 
 	h1 {
@@ -68,8 +80,6 @@
 		font-weight: 500;
 		font-size: 1.575em;
 		line-height: 1.15;
-		margin-top: 2.625rem;
-		margin-bottom: 1.75rem;
 	}
 	@media (min-width: 992px) {
 		h1 {
@@ -80,6 +90,8 @@
 	h1 a {
 		color: var(--shi-color-purple);
 	}
+	.design-neutral h1 a {
+		color: var(--shi-color-black);
 	}
 	h1 a:not(:hover):not(:active) {
 		text-decoration: none;
@@ -92,15 +104,15 @@
 	img {
 		aspect-ratio: 3 / 2;
 		object-fit: cover;
-		margin-bottom: 16px;
+		margin-bottom: var(--padding);
 		background-color: #000000;
-		width: calc(100% + 32px);
-		margin-left: -16px;
-		margin-top: -16px;
+		width: calc(100% + var(--padding) * 2);
+		margin-left: calc(var(--padding) * -1);
+		margin-top: calc(var(--padding) * -1);
 	}
 
 	p {
-		margin-bottom: 0;
+		margin-block: 16px 4px;
 		font-size: 0.9em;
 	}
 	@media (min-width: 782px) {
@@ -129,18 +141,26 @@
 		display: inline-flex;
 		align-items: center;
 		background-color: var(--shi-color-purple);
-		border-color: var(--shi-color-purple);
+		--box-shadow-color: var(--shi-color-purple);
+		box-shadow: inset 0 0 0 1px var(--box-shadow-color);
 		color: var(--shi-color--on-purple);
 	}
 	article :global(.btn:hover) {
 		background-color: var(--shi-color-yellow);
+		--box-shadow-color: var(--shi-color-yellow);
 		color: var(--shi-color--on-yellow);
 		text-decoration: none;
 	}
 	article :global(.btn:active) {
 		background-color: var(--shi-color-blue);
+		--box-shadow-color: var(--shi-color-blue);
 		color: var(--shi-color--on-blue);
 	}
+
+	article.design-neutral :global(.btn:not(:hover):not(:active)) {
+		background-color: var(--shi-color-white);
+		--box-shadow-color: var(--shi-divider-color);
+		color: var(--shi-color-black);
 	}
 
 	article :global(span.cpschool-read-more-link-holder) {

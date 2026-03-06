@@ -136,6 +136,8 @@ export default {
 										gap: currentAttributes['gap'] ?? undefined,
 										categoryIds: currentAttributes['category-ids'] ? JSON.parse(currentAttributes['category-ids']) : [],
 										tagIds: tags,
+										// @ts-expect-error
+										design: currentAttributes['design'] ?? undefined,
 									},
 								},
 								{
