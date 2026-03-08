@@ -66,8 +66,18 @@ that matches the divider on the navigation bars */
 
 /* styles for single post pages */
 body.post-template-default {
+	/* Since post-style pages are primarily for text contnet, we want
+	a smaller content width to make the text easier to read. */
+	--content-width: 800px;
+
 	header#hero-main {
 		display: contents;
+
+		/* By default, the hero content is full width. We want it to match
+		the content width of the rest of the page. */
+		> .hero-content.container {
+			max-width: var(--content-width);
+		}
 
 		/* Never show the featured image. On pages that need to show their featured
 		image, editors should insert a featured image block. */
@@ -95,6 +105,20 @@ body.post-template-default {
 		.page-meta .post-categories:has(a[href$='/category/uncategorized/']),
 		.page-meta .post-categories:has(a[href$='/category/projects/']) {
 			display: none;
+		}
+	}
+
+	figure.alignwide {
+		width: calc(100% + 6rem);
+		left: -3rem;
+	}
+
+	/* same as --content-width */
+	@media (max-width: 900px) {
+		figure.alignwide {
+			width: calc(100% + 3rem);
+			max-width: unset;
+			left: -1.5rem; /* page padding is 1.5rem */
 		}
 	}
 
