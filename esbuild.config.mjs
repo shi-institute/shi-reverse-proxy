@@ -3,6 +3,7 @@ import sveltePlugin from 'esbuild-svelte';
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { sveltePreprocess } from 'svelte-preprocess';
 import { Youch } from 'youch';
+import { customElementsManifestPlugin } from './plugins/custom-elements-manifest/plugin.js';
 
 await rm('./dist/.cloudflare/', { recursive: true, force: true });
 
@@ -51,6 +52,7 @@ try {
 		entryPoints: ['modules/worker/index.ts', 'modules/custom-elements/server.ts'],
 		outdir: 'dist/.cloudflare/',
 		plugins: [
+			customElementsManifestPlugin(),
 			sveltePlugin({
 				...commonSvelteOptions,
 				compilerOptions: {

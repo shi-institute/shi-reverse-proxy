@@ -2,9 +2,11 @@ import { uneval } from 'devalue';
 import type { Component } from 'svelte';
 import { SvelteURL } from 'svelte/reactivity';
 import { render as renderComponent } from 'svelte/server';
+import { attributesToProps } from 'virtual:custom-elements-manifest';
+import * as allCustomElementComponents from '../custom-elements/components';
 import { fetchStorage } from '../worker';
 import * as components from './components';
-import { pascalCaseToKebabCase } from './utils';
+import { kebabCaseToPascalCase, pascalCaseToKebabCase } from './utils';
 import { setUrlForSsr } from './utils/navigation';
 
 type Components = typeof components;
@@ -75,4 +77,92 @@ function unevalProps(props: Record<string, unknown>) {
 		}
 	}
 	return uneval(data);
+}
+
+interface RenderCustomElements {
+	/**
+	 * The prefix used to identify custom elements (e.g. "shi-").
+	 */
+	prefix: string;
+	/**
+	 * An object containing global values that may be needed during rendering, such as the
+	 * current URL and a fetch implementation.
+	 */
+	globals: Partial<Globals> & { document: Document };
+	/**
+	 * An optional function that allows you to adjust the props before rendering.
+	 * This function receives the initial props (converted from the custom element's
+	 * attributes), the component name, and the custom element node.
+	 * It should return the adjusted props.
+	 */
+	adjustPropsBeforeRender?: (
+		props: ReturnType<typeof attributesToProps>,
+		componentName: string,
+	) => void | ReturnType<typeof attributesToProps>;
+}
+
+/**
+ * Searches for unrendered custom elements in the provided document, attempts to find
+ * the corresponding component for each custom element, and then server-side renders
+ * the component and replaces the custom element with the rendered html.
+ *
+ * **CAUTION: This operation occurs in-place on the provided document.**
+ *
+ * @remarks
+ * Custom elements are identified as any element whose tag name starts with the provided
+ * prefix (e.g. "shi-") and that has not already been server-rendered (indicated by the
+ * presence of a shadow root or a template with a shadowrootmode attribute).
+ *
+ * The corresponding component for each custom element is determined by removing the
+ * prefix from the tag name, converting the remaining kebab-case string to PascalCase,
+ * and then looking for a component with that name in the list of all custom element components.
+ *
+ * The custom element's attributes are converted to props based on the component's
+ * prop types in the svelte:options tag using the attributesToProps function from
+ * the custom elements manifest plugin. Finally, the component is rendered to html
+ * using Svelte's server-side rendering and the custom element is replaced with the rendered html.
+ *
+ * @returns
+ * The outer HTML of the modified document after rendering the custom elements.
+ */
+export async function renderCustomElements({ prefix, globals, adjustPropsBeforeRender }: RenderCustomElements) {
+	const customElements = Array.from(globals.document.querySelectorAll('*')).filter((el) =>
+		el.tagName.toLowerCase().startsWith(prefix + '-'),
+	);
+
+	for await (const element of customElements) {
+		// server-rendered custom elements will have either a shadow root or a template with a shadowrootmode attribute
+		const isAlreadyServerRendered = element.shadowRoot || element.querySelector('template[shadowrootmode]');
+		if (isAlreadyServerRendered) {
+			continue;
+		}
+
+		// normalize the tag name
+		const tagName = element.tagName.toLowerCase();
+
+		// attempt to find a corresponding component for the custom element (e.g. shi-post-card-grid -> post-card-grid -> PostCardGrid)
+		const _componentName = kebabCaseToPascalCase(tagName.replace(/^shi-/, ''));
+		if (!(_componentName in allCustomElementComponents)) {
+			console.warn(`Found custom element <${tagName}> but no corresponding component ${_componentName} was found`);
+			continue;
+		}
+		const componentName = _componentName as keyof typeof allCustomElementComponents;
+
+		// convert the element's stringified attributes to a props object based on the component's prop types in the svelte:options tag
+		const elementAttributes = Object.fromEntries(Array.from(element.attributes).map((attr) => [attr.name, attr.value]));
+		let props = attributesToProps(componentName, elementAttributes);
+
+		if (adjustPropsBeforeRender) {
+			const adjustedProps = adjustPropsBeforeRender(props, componentName);
+			if (adjustedProps) {
+				props = adjustedProps;
+			}
+		}
+
+		// render to html and replace the custom element with the rendered html
+		const html = await render(componentName, { props }, { url: globals.url, fetch: globals.fetch });
+		element.outerHTML = html;
+	}
+
+	return globals.document.documentElement.outerHTML;
 }

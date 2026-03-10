@@ -194,7 +194,6 @@ async function getPageOrPostId(baseUrl: string, path: string) {
 
 	// if no match, try posts
 	url = `${baseUrl}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}`;
-	console.log('Fetching URL:', url);
 	res = await fetch(url, {
 		headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
 	});

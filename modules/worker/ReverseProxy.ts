@@ -5,11 +5,19 @@ interface ReverseProxyOptions {
 	removePath?: boolean;
 	spoofOrigin?: boolean;
 	spoofHost?: boolean;
+	/**
+	 * Runs after the proxy has performed its built-in URL replacements on the response body and
+	 * has applied the string replacements, allowing you to perform any additional custom replacements.
+	 *
+	 * The function receives the response body after the built-in replacements have been applied,
+	 * the request URL, and the content type of the response. You can return a new body with additiona
+	 *  replacements or return void (undefined) to keep the body unchanged.
+	 */
 	afterBodyReplacements?: (
 		body: string | ArrayBuffer | ReadableStream<Uint8Array> | null,
 		requestUrl: URL,
 		contentType: string,
-	) => Promise<string | ArrayBuffer | ReadableStream<Uint8Array> | null> | string | ArrayBuffer | ReadableStream<Uint8Array> | null;
+	) => Promise<void | string | ArrayBuffer | ReadableStream<Uint8Array> | null> | string | ArrayBuffer | ReadableStream<Uint8Array> | null;
 }
 
 export class ReverseProxy {
@@ -209,7 +217,10 @@ export class ReverseProxy {
 		}
 
 		if (this.afterBodyReplacements) {
-			body = await this.afterBodyReplacements(body, requestUrl, contentType);
+			const response = await this.afterBodyReplacements(body, requestUrl, contentType);
+			if (response !== undefined) {
+				body = response;
+			}
 		}
 
 		return body;

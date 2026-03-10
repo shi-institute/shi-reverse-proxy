@@ -1,6 +1,6 @@
 import { parseHTML } from 'linkedom';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { render } from '../custom-elements/server';
+import { renderCustomElements } from '../custom-elements/server';
 import blogCssOverrides from '../static/overrides.css';
 import { ReverseProxy } from './ReverseProxy';
 import handleApiRequest from './api';
@@ -117,48 +117,26 @@ export default {
 					'</head>': '<style>#navbar-secondary,#wrapper-navbar-main {display: none !important;}</style></head>',
 				},
 				async afterBodyReplacements(body, requestUrl, contentType) {
-					if (contentType.includes('text/html') && typeof body === 'string') {
-						const { document } = parseHTML(body);
-
-						// SSR for PostCardGrid
-						const grids = document.querySelectorAll('shi-post-card-grid');
-						for (const grid of Array.from(grids)) {
-							const currentAttributes = Object.fromEntries(Array.from(grid.attributes).map((attr) => [attr.name, attr.value]));
-
-							const tags =
-								requestUrl.searchParams
-									.get('tag')
-									?.split(',')
-									.map((s) => parseInt(s.trim()))
-									.filter((n) => Number.isInteger(n)) ?? [];
-
-							const ssrGrid = await render(
-								'PostCardGrid',
-								{
-									props: {
-										minColumnWidth: currentAttributes['min-column-width'] ?? undefined,
-										maxColumnWidth: currentAttributes['max-column-width'] ?? undefined,
-										gap: currentAttributes['gap'] ?? undefined,
-										categoryIds: currentAttributes['category-ids'] ? JSON.parse(currentAttributes['category-ids']) : [],
-										tagIds: tags,
-										// @ts-expect-error
-										design: currentAttributes['design'] ?? undefined,
-										page: currentAttributes['page'] ? parseInt(currentAttributes['page'], 10) : undefined,
-										pageSize: currentAttributes['page-size'] ? parseInt(currentAttributes['page-size'], 10) : undefined,
-									},
-								},
-								{
-									url: requestUrl,
-									fetch: prepareFetchWithSelf(env, requestUrl),
-								},
-							);
-							grid.outerHTML = ssrGrid;
-						}
-
-						body = document.documentElement.outerHTML;
+					if (!contentType.includes('text/html') || typeof body !== 'string') {
+						return;
 					}
 
-					return body;
+					// Render custom elements (e.g. shi-post-card or shi-post-card-grid) on the server to HTML,
+					// ensuring that the content is visible immediately on document download and that it can
+					// be easily indexed by search engines.
+					return await renderCustomElements({
+						prefix: 'shi',
+						globals: { document: parseHTML(body).document, url: requestUrl, fetch: prepareFetchWithSelf(env, requestUrl) },
+						adjustPropsBeforeRender(props, componentName) {
+							// For the post grid on the projects page, we want to filter the posts by the tags in the URL.
+							// The projects page sets the tags search param whenever a user uses the filters menu.
+							if (componentName === 'PostCardGrid' && requestUrl.pathname === '/projects/') {
+								const tagsIdStrings = requestUrl.searchParams.get('tag')?.split(',');
+								const tagIds = tagsIdStrings?.map((s) => parseInt(s.trim())).filter((n) => Number.isInteger(n)) ?? [];
+								return { ...props, tagIds };
+							}
+						},
+					});
 				},
 				removePath: true,
 			});
