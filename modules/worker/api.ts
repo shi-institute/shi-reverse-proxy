@@ -65,7 +65,14 @@ export default {
 						.filter((id) => Number.isInteger(id))
 				: [];
 
-			const posts = await getPosts(categoryIdsArray, tagIdsArray);
+			const pageSizeParam = url.searchParams.get('per_page');
+			const pageSize =
+				pageSizeParam && Number.isInteger(Number(pageSizeParam)) && Number(pageSizeParam) > 0 ? Number(pageSizeParam) : undefined;
+
+			const pageParam = url.searchParams.get('page');
+			const page = pageParam && Number.isInteger(Number(pageParam)) && Number(pageParam) > 0 ? Number(pageParam) : undefined;
+
+			const posts = await getPosts(categoryIdsArray, tagIdsArray, page, pageSize);
 			return new Response(JSON.stringify(posts).replaceAll('https://blogs.furman.edu/shi-applied-research', ''), {
 				headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
 				status: 200,
@@ -82,6 +89,8 @@ export default {
 export async function getPosts(
 	categoryIds: number[] = [],
 	tagIds: number[] = [],
+	page: number = 1,
+	pageSize: number = 10,
 ): Promise<(z.infer<typeof wordpressPostSchema> & { media?: z.infer<typeof wordpressMediaSchema> | null })[]> {
 	const postsQueryUrl = new URL(`${BLOG}/wp-json/wp/v2/posts`);
 	if (tagIds.length > 0) {
@@ -89,6 +98,12 @@ export async function getPosts(
 	}
 	if (categoryIds.length > 0) {
 		postsQueryUrl.searchParams.set('categories', categoryIds.join(','));
+	}
+	if (page > 0) {
+		postsQueryUrl.searchParams.set('page', page.toString());
+	}
+	if (pageSize > 0) {
+		postsQueryUrl.searchParams.set('per_page', pageSize.toString());
 	}
 
 	const posts = await fetch(postsQueryUrl, {

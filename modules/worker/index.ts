@@ -143,6 +143,8 @@ export default {
 										tagIds: tags,
 										// @ts-expect-error
 										design: currentAttributes['design'] ?? undefined,
+										page: currentAttributes['page'] ? parseInt(currentAttributes['page'], 10) : undefined,
+										pageSize: currentAttributes['page-size'] ? parseInt(currentAttributes['page-size'], 10) : undefined,
 									},
 								},
 								{

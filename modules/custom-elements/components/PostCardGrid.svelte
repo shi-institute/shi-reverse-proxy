@@ -7,6 +7,8 @@
 			categoryIds: { reflect: true, type: 'Array', attribute: 'category-ids' },
 			tagIds: { reflect: true, type: 'Array', attribute: 'tag-ids' },
 			design: { reflect: true, type: 'String', attribute: 'design' },
+			page: { reflect: true, type: 'Number', attribute: 'page' },
+			pageSize: { reflect: true, type: 'Number', attribute: 'page-size' },
 		},
 	}}
 />
@@ -23,6 +25,8 @@
 		gap?: string;
 		categoryIds?: number[];
 		tagIds?: number[];
+		page?: number;
+		pageSize?: number;
 		/** The design of the post cards. See PostCard for more information. */
 		design?: PostCardProps['design'];
 	}
@@ -35,6 +39,8 @@
 		gap = '1rem',
 		categoryIds = [],
 		tagIds = [],
+		page = 1,
+		pageSize = 10,
 		design,
 	}: PostCardGridProps = $props();
 
@@ -48,6 +54,12 @@
 		}
 		if (tagIds.length > 0) {
 			queryUrl.searchParams.set('tags', tagIds.join(','));
+		}
+		if (page !== undefined) {
+			queryUrl.searchParams.set('page', page.toString());
+		}
+		if (pageSize !== undefined) {
+			queryUrl.searchParams.set('per_page', pageSize.toString());
 		}
 		return queryUrl;
 	});
