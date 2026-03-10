@@ -17,5 +17,22 @@
 	--shi-color--on-yellow: #000;
 	--shi-color--on-green: #fff;
 
-	--shi-divider-color: #d8d8d8;
+	--shi-adaptive-color--purple: light-dark(var(--shi-color-purple), oklch(from var(--shi-color-purple) calc(l + 0.48) calc(c - 0.08) h));
+	--shi-adaptive-color--on-purple: light-dark(var(--shi-color--on-purple), #000);
+
+	--shi-divider-color: light-dark(#d8d8d8, #424242);
+
+	--shi-surface-background-color: light-dark(#fff, #212121);
+	--shi-surface-color: light-dark(#000, #e0e0e0);
+
+	--shi-navbar-background-color: var(--shi-surface-background-color);
+
+	--shi-navlist-color: var(--shi-surface-color);
+	--shi-navbar-color--current: var(--shi-adaptive-color--purple);
+	--shi-navbar-color--hover: var(--shi-navbar-color--current);
+	--shi-navbar-color--current--hover: light-dark(
+		oklch(from var(--shi-color-purple) calc(l + 0.1) c h),
+		oklch(from var(--shi-color-purple) calc(l + 0.56) calc(c - 0.08) h)
+	);
+	--shi-navbar-color--active: light-dark(var(--shi-color-midnight), oklch(from var(--shi-color-purple) calc(l + 0.36) calc(c - 0.08) h));
 }

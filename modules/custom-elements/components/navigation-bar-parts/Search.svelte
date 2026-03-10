@@ -25,8 +25,8 @@
 <script lang="ts">
 	const defaultStyles = {
 		base: {
-			backgroundColor: 'var(--shi-color-near-white)',
-			color: 'var(--shi-color-black)',
+			backgroundColor: 'light-dark(var(--shi-color-near-white), #383838)',
+			color: 'light-dark(var(--shi-color-black), #e0e0e0)',
 		},
 		hover: {
 			backgroundColor: 'var(--shi-color-purple)',

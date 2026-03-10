@@ -85,7 +85,7 @@
 	a span {
 		font-size: 0.95rem;
 		font-family: 'Epilogue', sans-serif;
-		color: #000;
+		color: var(--shi-navlist-color);
 		text-decoration: none;
 		font-weight: 500;
 		font-variation-settings: 'wght' 560;
@@ -99,20 +99,20 @@
 		user-select: none;
 	}
 	a.current span {
-		border-bottom-color: var(--shi-color-purple);
-		color: var(--shi-color-purple);
+		border-bottom-color: var(--shi-navbar-color--current);
+		color: var(--shi-navbar-color--current);
 	}
 	a:hover span {
-		border-bottom-color: var(--shi-color-purple);
-		color: var(--shi-color-purple);
+		border-bottom-color: var(--shi-navbar-color--hover);
+		color: var(--shi-navbar-color--hover);
 	}
 	a.current:hover:not(:active) span {
-		border-bottom-color: oklch(from var(--shi-color-purple) calc(l + 0.1) c h);
-		color: oklch(from var(--shi-color-purple) calc(l + 0.1) c h);
+		border-bottom-color: var(--shi-navbar-color--current--hover);
+		color: var(--shi-navbar-color--current--hover);
 	}
 	a:active span {
-		border-bottom-color: var(--shi-color-midnight);
-		color: var(--shi-color-midnight);
+		border-bottom-color: var(--shi-navbar-color--active);
+		color: var(--shi-navbar-color--active);
 	}
 
 	hr {

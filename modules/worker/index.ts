@@ -83,6 +83,44 @@ export default {
 								`<!-- End Google Tag Manager (noscript) -->`,
 								`<!-- End Google Tag Manager (noscript) -->${await getInjectableNavigation(ctx, requestUrl)}`,
 							);
+
+							// inject dark mode support via darkreader
+							body = body.replace(
+								'<meta charset="utf-8">',
+								`<meta charset="utf-8">
+								<style>
+									html { background-color: #212121; }
+									.primary-hero-left-caption::before,
+									.page-banner.tertiary-hero .caption::before,
+									.module-content-block-media-carousel-slider::before {
+										filter: invert(80%);
+									}
+									.module-content-block-media-carousel-slider .slick-dots li.slick-active a {
+										--darkreader-text-ffffff: #000;
+									}
+								</style>
+								<script>document.documentElement.style.visibility = 'hidden';</script>
+								<script type="module">
+									import * as DarkReader from "https://esm.run/darkreader";
+
+									DarkReader.setFetchMethod((url) => {
+										let headers = new Headers();
+										headers.append("Access-Control-Allow-Origin", "*");
+
+										return window.fetch(url, {
+											headers,
+											mode: "no-cors",
+										});
+									});
+
+									DarkReader.auto({
+										brightness: 125,
+									});
+									
+									document.documentElement.style.visibility = '';
+								</script>
+							`,
+							);
 						}
 
 						return body;
@@ -109,6 +147,7 @@ export default {
 
 					// inject our own stylesheet to override the WordPress theme's styles
 					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end --><!-- injected-nav --><style>${blogCssOverrides}</style>`,
+					'<meta charset="UTF-8">': `<meta charset="UTF-8"><meta name="darkreader-lock">`,
 
 					// inject our own navigation elements
 					'<!-- injected-nav -->': `<!-- injected-nav -->${await getInjectableNavigation(ctx, requestUrl)}`,

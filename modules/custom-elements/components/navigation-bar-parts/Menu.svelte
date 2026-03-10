@@ -99,6 +99,11 @@
 			<svg xmlns="http://www.w3.org/2000/svg" width="48" viewBox="0 0 60 60">
 				<circle cx="30" cy="30" r="30" fill="#F9F5FF" />
 				<path d="M19 19 L41 41 M41 19 L19 41" stroke="#1A083D" stroke-width="4" stroke-linecap="round" />
+				<style>
+					path {
+						--darkreader-inline-stroke: #1a083d !important;
+					}
+				</style>
 			</svg>
 			Close
 		</button>
@@ -134,7 +139,7 @@
 		flex-shrink: 0;
 	}
 	.menu-button:hover {
-		background-color: var(--shi-color-midnight);
+		background-color: light-dark(var(--shi-color-midnight), oklch(from var(--shi-color-purple) calc(l + 0.08) c h));
 		color: var(--shi-color--on-midnight);
 	}
 	.menu-button:active {

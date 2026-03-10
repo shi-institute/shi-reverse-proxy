@@ -1,5 +1,6 @@
-/* Apply standard Furman fonts to the website */
 @import url('https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap');
+
+/* Apply standard Furman fonts to the website */
 html > body {
 	font-family: 'Epilogue', sans-serif;
 	font-optical-sizing: auto;
@@ -32,6 +33,10 @@ the first content to its side. */
 .entry-content figure.alignleft {
 	margin-top: 0;
 }
+figcaption,
+.wp-block-image figcaption {
+	margin-top: 0.5rem;
+}
 
 /* The default margin, 6em, is way too much */
 @media (min-width: 782px) {
@@ -53,7 +58,10 @@ the first content to its side. */
 /* show a divider after the hero header
 that matches the divider on the navigation bars */
 #hero-main {
-	box-shadow: inset 0 -1px 0 0 #d8d8d8 !important;
+	box-shadow: inset 0 -1px 0 0 var(--shi-divider-color) !important;
+}
+#hero-main > .hero-image-holder {
+	bottom: 1px;
 }
 
 /* The default padding, 6em, is way too much */
@@ -140,7 +148,8 @@ body {
 	background-color: black;
 }
 .site {
-	background-color: white;
+	background-color: var(--shi-surface-background-color, light-dark(#fff, #212121));
+	color: var(--shi-surface-color, light-dark(#000, #e0e0e0));
 }
 
 /* The site alert padding and text are too large by default. */
@@ -221,4 +230,80 @@ footer {
 #footer-block > .wp-block-group {
 	padding-block: 0 !important;
 	margin-block: 0 !important;
+}
+
+/* Enable dark mode support. Including light and dark allows browsers to pick the 
+correct mode based on the user's preference. */
+:root {
+	color-scheme: light dark;
+}
+a {
+	color: var(--shi-adaptive-color--purple);
+	transition: 120ms color ease;
+	&:hover {
+		color: light-dark(var(--shi-color-purple), oklch(from var(--shi-color-purple) calc(l + 0.42) calc(c - 0.08) h));
+	}
+	&:active {
+		color: light-dark(var(--shi-color-purple), oklch(from var(--shi-color-purple) calc(l + 0.32) calc(c - 0.06) h));
+	}
+}
+.entry-col-boxed article {
+	background-color: var(--shi-surface-background-color, light-dark(#fff, #212121)) !important;
+	color: var(--shi-surface-color, light-dark(#000, #e0e0e0));
+
+	box-shadow: inset 0 0 0 1px var(--shi-divider-color) !important;
+
+	h2 a {
+		color: light-dark(var(--shi-color-purple), var(--shi-surface-color));
+	}
+}
+.form-control,
+body .calendar-plus #calendar-plus-category,
+body .calendar-plus #calendar-plus-search,
+input[type='email']:not(.form-control),
+input[type='search']:not(.form-control),
+input[type='tel']:not(.form-control),
+input[type='text']:not(.form-control),
+select:not(.form-control),
+textarea:not(.form-control) {
+	background-color: var(--shi-surface-background-color);
+	color: var(--shi-surface-color);
+	border-color: var(--shi-divider-color);
+}
+#hero-main {
+	--hero-main-bg-color: var(--shi-surface-background-color, light-dark(#fff, #212121));
+	.hero-content {
+		color: var(--shi-surface-color, light-dark(#000, #fff));
+	}
+}
+ul.pagination {
+	border: 1px solid var(--shi-divider-color);
+
+	.page-item {
+		.page-link {
+			background-color: var(--shi-surface-background-color);
+			color: var(--shi-surface-color);
+			transition:
+				120ms background-color ease,
+				120ms color ease;
+		}
+		.page-link.current {
+			background-color: var(--shi-color-purple);
+			color: var(--shi-color--on-purple);
+		}
+
+		&:hover {
+			.page-link:not(.current) {
+				background-color: var(--shi-color-yellow);
+				color: var(--shi-color--on-yellow);
+			}
+		}
+
+		&:active {
+			.page-link:not(.current) {
+				background-color: var(--shi-color-blue);
+				color: var(--shi-color--on-blue);
+			}
+		}
+	}
 }

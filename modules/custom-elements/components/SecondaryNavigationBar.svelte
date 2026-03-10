@@ -22,8 +22,8 @@
 <style>
 	:host {
 		height: 30px;
-		background: white;
-		box-shadow: inset 0 -1px 0 0 #d8d8d8;
+		background: var(--shi-navbar-background-color);
+		box-shadow: inset 0 -1px 0 0 var(--shi-divider-color);
 		width: 100%;
 		z-index: 1000;
 		display: flex;

@@ -66,8 +66,8 @@
 	article {
 		display: block;
 		box-shadow: inset 0 0 0 1px var(--shi-divider-color);
-		background-color: var(--shi-color-white);
-		color: #000;
+		background-color: var(--shi-surface-background-color);
+		color: var(--shi-surface-color);
 		--padding: 24px;
 		padding: var(--padding);
 	}
@@ -88,10 +88,10 @@
 	}
 
 	h1 a {
-		color: var(--shi-color-purple);
+		color: light-dark(var(--shi-color-purple), var(--shi-surface-color));
 	}
 	.design-neutral h1 a {
-		color: var(--shi-color-black);
+		color: var(--shi-surface-color);
 	}
 	h1 a:not(:hover):not(:active) {
 		text-decoration: none;
@@ -158,9 +158,9 @@
 	}
 
 	article.design-neutral :global(.btn:not(:hover):not(:active)) {
-		background-color: var(--shi-color-white);
+		background-color: var(--shi-surface-background-color);
 		--box-shadow-color: var(--shi-divider-color);
-		color: var(--shi-color-black);
+		color: var(--shi-surface-color);
 	}
 
 	article :global(span.cpschool-read-more-link-holder) {
