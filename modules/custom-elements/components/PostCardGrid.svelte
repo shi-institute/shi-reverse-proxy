@@ -18,6 +18,7 @@
 	import { fetchWithHydration } from '../utils';
 	import { url } from '../utils/navigation';
 	import PostCard, { type PostCardProps } from './PostCard.svelte';
+	import ProgressRing from './ProgressRing.svelte';
 
 	export interface PostCardGridProps {
 		minColumnWidth?: string;
@@ -70,7 +71,10 @@
 <div class="grid" style:--min-column-width={minColumnWidth} style:--max-column-width={maxColumnWidth} style:--gap={gap}>
 	{#if fetcher.data}
 		{#if fetcher.loading}
-			<div class="loading">Please wait…</div>
+			<div class="loading loading-overlay">
+				<ProgressRing />
+				Please wait…
+			</div>
 		{/if}
 		{#if fetcher.data.length === 0}
 			<p>No posts found.</p>
@@ -105,7 +109,10 @@
 			{/each}
 		{/if}
 	{:else if fetcher.loading}
-		<p>Loading posts...</p>
+		<div class="loading">
+			<ProgressRing />
+			<p>Loading posts…</p>
+		</div>
 	{:else if fetcher.error}
 		<p>Error loading posts: {fetcher.error.message}</p>
 	{/if}
@@ -124,15 +131,23 @@
 	}
 
 	.loading {
+		font-size: 1.25rem;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.loading-overlay {
 		position: absolute;
 		top: 20px;
 		left: 50%;
 		transform: translate(-50%, -0);
-		background: rgba(255, 255, 255, 0.8);
+		background: light-dark(rgba(255, 255, 255, 0.8), rgba(0, 0, 0, 0.8));
+		box-shadow: inset 0 0 0 1px var(--shi-divider-color);
+		backdrop-filter: blur(4px);
 		padding: 1rem 2rem;
-		border-radius: 4px;
-		font-size: 1.25rem;
-		font-weight: 600;
+		border-radius: 0px;
 	}
 
 	div[data-post-id] {

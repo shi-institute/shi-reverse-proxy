@@ -151,6 +151,9 @@ export async function renderCustomElements({ prefix, globals, adjustPropsBeforeR
 		// convert the element's stringified attributes to a props object based on the component's prop types in the svelte:options tag
 		const elementAttributes = Object.fromEntries(Array.from(element.attributes).map((attr) => [attr.name, attr.value]));
 		let props = attributesToProps(componentName, elementAttributes);
+		if (process.env.DEVELOPMENT) {
+			console.debug(`Rendering <${tagName}> with props:`, props);
+		}
 
 		if (adjustPropsBeforeRender) {
 			const adjustedProps = adjustPropsBeforeRender(props, componentName);
