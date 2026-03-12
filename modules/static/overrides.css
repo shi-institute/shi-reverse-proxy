@@ -238,6 +238,31 @@ margin if there is a text element after it */
 	margin-top: 1rem;
 }
 
+/* Show a new tab indicator next to links with target="_blank" */
+a[target='_blank']::after {
+	content: ' ↗';
+	font-size: 0.75em;
+	vertical-align: super;
+}
+a.wp-block-button__link[target='_blank'] {
+	display: inline-block !important;
+	text-box-trim: trim-both;
+	text-box-edge: cap alphabetic;
+	position: relative;
+	padding-right: calc(12px + 14px + 8px); /* button padding + icon width + gap */
+}
+a.wp-block-button__link[target='_blank']::after {
+	content: '';
+	display: inline-flex;
+	position: absolute;
+	inset: 0 12px 0 auto; /* 12px = button padding */
+	width: 14px;
+	mask: url('data:image/svg+xml,%3Csvg%20aria-hidden%3D%22true%22%20class%3D%22svg%22%20fill%3D%22currentColor%22%20height%3D%22100%25%22%20viewBox%3D%220%200%2016%2016%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M1%201h8v1H2v12h12V7h1v8H1zm7.325%207.382L14%202.707V5h1V1h-4v1h2.293L7.618%207.675z%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E')
+		no-repeat center / contain;
+	background-color: currentColor;
+	pointer-events: none;
+}
+
 /* Enable dark mode support. Including light and dark allows browsers to pick the 
 correct mode based on the user's preference. */
 :root {
