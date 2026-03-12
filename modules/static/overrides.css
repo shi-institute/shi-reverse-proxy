@@ -232,6 +232,12 @@ footer {
 	margin-block: 0 !important;
 }
 
+/* block button rows do not have margin, but we need them to have
+margin if there is a text element after it */
+.wp-block-buttons + * {
+	margin-top: 1rem;
+}
+
 /* Enable dark mode support. Including light and dark allows browsers to pick the 
 correct mode based on the user's preference. */
 :root {
