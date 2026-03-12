@@ -148,8 +148,8 @@ body {
 	background-color: black;
 }
 .site {
-	background-color: var(--shi-surface-background-color, light-dark(#fff, #212121));
-	color: var(--shi-surface-color, light-dark(#000, #e0e0e0));
+	background-color: var(--shi-surface-background-color);
+	color: var(--shi-surface-color);
 }
 
 /* The site alert padding and text are too large by default. */
@@ -254,8 +254,8 @@ a {
 	}
 }
 .entry-col-boxed article {
-	background-color: var(--shi-surface-background-color, light-dark(#fff, #212121)) !important;
-	color: var(--shi-surface-color, light-dark(#000, #e0e0e0));
+	background-color: var(--shi-surface-background-color) !important;
+	color: var(--shi-surface-color);
 
 	box-shadow: inset 0 0 0 1px var(--shi-divider-color) !important;
 
@@ -277,9 +277,9 @@ textarea:not(.form-control) {
 	border-color: var(--shi-divider-color);
 }
 #hero-main {
-	--hero-main-bg-color: var(--shi-surface-background-color, light-dark(#fff, #212121));
+	--hero-main-bg-color: var(--shi-surface-background-color);
 	.hero-content {
-		color: var(--shi-surface-color, light-dark(#000, #fff));
+		color: var(--shi-surface-color);
 	}
 }
 ul.pagination {
