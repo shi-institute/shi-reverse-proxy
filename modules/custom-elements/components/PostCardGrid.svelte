@@ -89,6 +89,7 @@
 							? {
 									alt_text: post.media.alt_text,
 									source_url: prefix + post.media.source_url,
+									credit: post.media.caption.rendered.slice(3, post.media.caption.rendered.indexOf('&#8230;')),
 									media_details: {
 										...post.media.media_details,
 										sizes: Object.fromEntries(

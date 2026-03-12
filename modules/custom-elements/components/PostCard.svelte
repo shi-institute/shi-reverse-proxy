@@ -21,6 +21,7 @@
 		image?: {
 			alt_text: string;
 			source_url: string;
+			credit?: string;
 			media_details: PostMediaDetails;
 		};
 		/**
@@ -42,9 +43,22 @@
 
 <article class:design-neutral={design === 'neutral'}>
 	{#if image}
-		<a {href}>
-			<img src={image.source_url} alt={image.alt_text} />
-		</a>
+		<figure>
+			<a {href}>
+				<img src={image.source_url} alt={image.alt_text} />
+			</a>
+			{#if image.credit}
+				<figcaption>
+					<svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+						<path
+							d="M12 1.999c5.524 0 10.002 4.478 10.002 10.002 0 5.523-4.478 10.001-10.002 10.001-5.524 0-10.002-4.478-10.002-10.001C1.998 6.477 6.476 1.999 12 1.999Zm0 1.5a8.502 8.502 0 1 0 0 17.003A8.502 8.502 0 0 0 12 3.5Zm-.004 7a.75.75 0 0 1 .744.648l.007.102.003 5.502a.75.75 0 0 1-1.493.102l-.007-.101-.003-5.502a.75.75 0 0 1 .75-.75ZM12 7.003a.999.999 0 1 1 0 1.997.999.999 0 0 1 0-1.997Z"
+							fill="#ffffff"
+						/>
+					</svg>
+					<span class="image-credit" aria-label="Photo credit: {image.credit}">{image.credit}</span>
+				</figcaption>
+			{/if}
+		</figure>
 	{/if}
 
 	<h1>
@@ -101,10 +115,61 @@
 		text-decoration: underline;
 	}
 
+	figure {
+		margin: 0 0 var(--padding) 0;
+		position: relative;
+	}
+	figure a {
+		display: contents;
+	}
+	figure:not(:hover) figcaption {
+		opacity: 0;
+	}
+	figcaption svg {
+		background-color: rgba(0, 0, 0, 0.4);
+		color: #aaa;
+		padding: 1px;
+		border-radius: 50%;
+		block-size: 20px;
+		inline-size: 20px;
+	}
+	figcaption {
+		position: absolute;
+		display: flex;
+		flex-direction: row-reverse;
+		align-items: center;
+		gap: 0.5rem;
+		top: calc(-1 * var(--padding) + 8px);
+		right: calc(-1 * var(--padding) + 4px);
+		font-size: 0.75em;
+		text-align: right;
+		padding: 4px 8px;
+		transition: opacity 200ms ease;
+	}
+	figcaption .image-credit {
+		opacity: 0;
+		transition:
+			opacity 200ms ease,
+			visibility 200ms ease,
+			background-color 200ms ease,
+			color 200ms ease,
+			backdrop-filter 200ms ease;
+	}
+	figcaption:hover .image-credit,
+	figcaption:focus .image-credit {
+		opacity: 1;
+	}
+	figcaption:hover,
+	figcaption:focus {
+		background-color: rgba(0, 0, 0, 0.8);
+		color: #fff;
+		backdrop-filter: blur(4px);
+		border-radius: 24px;
+	}
+
 	img {
 		aspect-ratio: 3 / 2;
 		object-fit: cover;
-		margin-bottom: var(--padding);
 		background-color: #000000;
 		width: calc(100% + var(--padding) * 2);
 		margin-left: calc(var(--padding) * -1);
