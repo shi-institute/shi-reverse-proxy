@@ -34,8 +34,8 @@ export function autohydrate() {
  * of newly mounting the component that powers the custom element.
  */
 function hydrateWithHydrationPack(scriptEl: HydrationPack) {
-	// The `data-for` attribute contains the id of the element to prepare for hydration.
-	const target = document.getElementById(scriptEl.dataset.for) as HydrationTarget | null;
+	// The `data-for` attribute contains the `data-hydrate-id` of the element to prepare for hydration.
+	const target = document.querySelector(`[data-hydrate-id='${scriptEl.dataset.for}']`) as HydrationTarget | null;
 	if (!target) {
 		return;
 	}

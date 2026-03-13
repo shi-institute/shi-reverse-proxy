@@ -28,7 +28,7 @@ interface Globals {
  */
 export async function render<N extends ComponentName>(
 	componentName: N,
-	options: RenderOptions<Components[N]>,
+	options: RenderOptions<Components[N]> & { slotHTML?: string; attributes?: Record<string, string> },
 	globals: Partial<Globals> = {},
 ) {
 	const component = components[componentName] as Component<any>;
@@ -56,7 +56,17 @@ export async function render<N extends ComponentName>(
 		unevalProps(options?.props || {}).replace(/</g, '\\u003c') +
 		'</script>';
 
-	const returnValue = new String(`${data}<${tag} id="${uuid}"><template shadowrootmode="open">${head}${body}</template></${tag}>`);
+	const attributes = {
+		...(options.attributes || {}),
+		'data-hydrate-id': uuid,
+	};
+	const attributesString = Object.entries(attributes)
+		.map(([key, value]) => ` ${key}="${value}"`)
+		.join('');
+
+	const returnValue = new String(
+		`${data}<${tag} ${attributesString}><template shadowrootmode="open">${head}${body}</template>${options.slotHTML || '<template></tempalte>'}</${tag}>`,
+	);
 	Object.defineProperty(returnValue, 'hashes', { value: hashes });
 	Object.defineProperty(returnValue, 'head', { value: head });
 	Object.defineProperty(returnValue, 'rawBody', { value: body });
@@ -150,6 +160,9 @@ export async function renderCustomElements({ prefix, globals, adjustPropsBeforeR
 
 		// convert the element's stringified attributes to a props object based on the component's prop types in the svelte:options tag
 		const elementAttributes = Object.fromEntries(Array.from(element.attributes).map((attr) => [attr.name, attr.value]));
+		const elementEventAttributes = Object.fromEntries(
+			Object.entries(elementAttributes).filter(([key]) => key.startsWith('on') || key == 'id'),
+		);
 		let props = attributesToProps(componentName, elementAttributes);
 		if (process.env.DEVELOPMENT) {
 			console.debug(`Rendering <${tagName}> with props:`, props);
@@ -162,8 +175,14 @@ export async function renderCustomElements({ prefix, globals, adjustPropsBeforeR
 			}
 		}
 
+		const slotHTML = element.innerHTML.trim() ? element.innerHTML.trim() : undefined;
+
 		// render to html and replace the custom element with the rendered html
-		const html = await render(componentName, { props }, { url: globals.url, fetch: globals.fetch });
+		const html = await render(
+			componentName,
+			{ props, slotHTML, attributes: elementEventAttributes },
+			{ url: globals.url, fetch: globals.fetch },
+		);
 		element.outerHTML = html;
 	}
 

@@ -170,7 +170,7 @@ export default {
 							// For the post grid on the projects page, we want to filter the posts by the tags in the URL.
 							// The projects page sets the tags search param whenever a user uses the filters menu.
 							if (componentName === 'PostCardGrid' && requestUrl.pathname === '/projects/') {
-								const tagsIdStrings = requestUrl.searchParams.get('tag')?.split(',');
+								const tagsIdStrings = requestUrl.searchParams.getAll('tag');
 								const tagIds = tagsIdStrings?.map((s) => parseInt(s.trim())).filter((n) => Number.isInteger(n)) ?? [];
 								return { ...props, tagIds };
 							}
