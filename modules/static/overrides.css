@@ -108,12 +108,44 @@ body.post-template-default {
 			margin-top: -0.75rem;
 		}
 
-		/* Hide the categories if it includes Uncategorized or Projects.
-		Uncategorized does not need to be labeled, and the projects
+		/* Hide the categories if it includes Uncategorized, Services, or Projects.
+		Uncategorized does not need to be labeled, and the projects and services
 		pages are not meant to be browsed by category. */
 		.page-meta .post-categories:has(a[href$='/category/uncategorized/']),
+		.page-meta .post-categories:has(a[href$='/category/services/']),
 		.page-meta .post-categories:has(a[href$='/category/projects/']) {
 			display: none;
+		}
+
+		.breadcrumbs {
+			position: relative;
+			inset: unset;
+
+			ol {
+				margin: -10px 0 6px 0;
+			}
+			ol::before {
+				content: none;
+			}
+
+			/* Do not show Home or the current page in the breadcrumbs */
+			.breadcrumb-item.breadcrumb-item-begin,
+			.breadcrumb-item-end.active {
+				display: none;
+			}
+
+			/* Remove the preceding slash in front of the first visible breadkcrumb */
+			.breadcrumb-item:nth-of-type(2) {
+				padding-left: 0;
+			}
+			.breadcrumb-item:nth-of-type(2)::before {
+				content: none;
+			}
+
+			/* No underline */
+			.breadcrumb-item a:not(:hover):not(:active) {
+				text-decoration: none;
+			}
 		}
 	}
 
