@@ -80,36 +80,38 @@
 			<p>No posts found.</p>
 		{:else}
 			{#each fetcher.data as post}
-				<div data-post-id={post.id}>
-					<PostCard
-						title={post.title.rendered}
-						excerpt={post.excerpt.rendered}
-						href={prefix + post.link}
-						image={post.media
-							? {
-									alt_text: post.media.alt_text,
-									source_url: prefix + post.media.source_url,
-									credit: post.media.caption.rendered.slice(
-										3,
-										(post.media.caption.rendered.indexOf('&#8230;') + 1 || post.media.caption.rendered.indexOf('</') + 1) - 1,
-									),
-									media_details: {
-										...post.media.media_details,
-										sizes: Object.fromEntries(
-											Object.entries(post.media.media_details.sizes || {}).map(([key, value]) => [
-												key,
-												{
-													...value,
-													source_url: prefix + value.source_url,
-												},
-											]),
+				{#key post.id}
+					<div data-post-id={post.id}>
+						<PostCard
+							title={post.title.rendered}
+							excerpt={post.excerpt.rendered}
+							href={prefix + post.link}
+							image={post.media
+								? {
+										alt_text: post.media.alt_text,
+										source_url: prefix + post.media.source_url,
+										credit: post.media.caption.rendered.slice(
+											3,
+											(post.media.caption.rendered.indexOf('&#8230;') + 1 || post.media.caption.rendered.indexOf('</') + 1) - 1,
 										),
-									},
-								}
-							: undefined}
-						{design}
-					/>
-				</div>
+										media_details: {
+											...post.media.media_details,
+											sizes: Object.fromEntries(
+												Object.entries(post.media.media_details.sizes || {}).map(([key, value]) => [
+													key,
+													{
+														...value,
+														source_url: prefix + value.source_url,
+													},
+												]),
+											),
+										},
+									}
+								: undefined}
+							{design}
+						/>
+					</div>
+				{/key}
 			{/each}
 		{/if}
 	{:else if fetcher.loading}
