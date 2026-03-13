@@ -459,7 +459,9 @@
 		width: 100%;
 		background-color: var(--shi-surface-background-color);
 		color: var(--shi-surface-color);
-		border: 1px solid var(--shi-divider-color);
+		border: none;
+		--box-shadow-color: var(--shi-divider-color);
+		box-shadow: inset 0 0 0 1px var(--box-shadow-color);
 		height: 38px;
 		box-sizing: border-box;
 		font-size: 0.85rem;
@@ -488,6 +490,7 @@
 	}
 	.label.variant-button--white {
 		background-color: white;
+		--box-shadow-color: white;
 		color: black;
 	}
 	.label.variant-button:hover {
