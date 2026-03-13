@@ -65,7 +65,7 @@ export async function render<N extends ComponentName>(
 		.join('');
 
 	const returnValue = new String(
-		`${data}<${tag} ${attributesString}><template shadowrootmode="open">${head}${body}</template>${options.slotHTML || '<template></tempalte>'}</${tag}>`,
+		`${data}<${tag} ${attributesString}><template shadowrootmode="open">${head}${body}</template>${options.slotHTML || ''}</${tag}>`,
 	);
 	Object.defineProperty(returnValue, 'hashes', { value: hashes });
 	Object.defineProperty(returnValue, 'head', { value: head });
