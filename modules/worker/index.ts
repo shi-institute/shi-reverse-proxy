@@ -160,6 +160,14 @@ export default {
 						return;
 					}
 
+					// The WordPress theme adds "…. Continue Reading <title>" to the end of post excerpts, even
+					// when the excerppt is only a string. In this case, it is usally rendered in a paragrahp tag.
+					// The text is indeded by the theme to include divs and spans with classes for styling, but
+					// the text-only form results in undesired extra text at the end of excepts. We need to remove
+					// this text by removing text from the ellipsis to the start of the closing paragraph tag.
+					body = body.replace(/&#8230;\.\s*Continue Reading[^<]*<\/p>/g, '.</p>');
+					body = body.replace(/&#8230;\s*Continue Reading[^<]*<\/p>/g, '</p>');
+
 					// Render custom elements (e.g. shi-post-card or shi-post-card-grid) on the server to HTML,
 					// ensuring that the content is visible immediately on document download and that it can
 					// be easily indexed by search engines.
