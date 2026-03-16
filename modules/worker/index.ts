@@ -56,7 +56,10 @@ export default {
 			}
 
 			// proxy furman.edu website resources
-			if (requestUrl.pathname.startsWith('/shi-institute') || requestUrl.pathname.startsWith('/wp-content/themes/furman')) {
+			const isShiInstitutePath = requestUrl.pathname.startsWith('/shi-institute');
+			const isFurmanThemeAsset = requestUrl.pathname.startsWith('/wp-content/themes/furman');
+			const isPersonPage = requestUrl.pathname.startsWith('/people/') && requestUrl.pathname.split('/').filter(Boolean).length === 2; // only proxy /people/{slug}
+			if (isShiInstitutePath || isFurmanThemeAsset || isPersonPage) {
 				if (requestUrl.pathname.includes('wp-content/uploads')) {
 					return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://www.furman.edu'), 307);
 				}
@@ -72,10 +75,27 @@ export default {
 							);
 
 							// Replace all relative paths (href="/something") with absolute paths (href="https://www.furman.edu/something")
-							// except for paths that start with /shi-institute. We only want to proxy the /shi-institute subdirectory,
+							// except for paths that start with /shi-institute or /people. We only want to proxy the /shi-institute subdirectory,
 							// so we want to keep links to other parts of the furman.edu site on the furman.edu origin.
-							body = body.replace(/(href|src)=["']\/(?!shi-institute)([^"' ]*)["']/g, (match, attr, path) => {
-								return `${attr}="https://www.furman.edu/${path}"`;
+							body = body.replace(/(href|src|srcset)=["']\/(?!(?:shi-institute|people))([^"']*)["']/g, (match, attr, value) => {
+								if (attr === 'srcset' && typeof value === 'string') {
+									// handle comma-separated list in srcset
+									const updatedSrcset = value
+										.split(',')
+										.map((item) => {
+											const parts = item.trim().split(' ');
+											// Only prepend if it's a relative path starting with /
+											if (parts[0]?.startsWith('/')) {
+												parts[0] = `https://www.furman.edu${parts[0]}`;
+											}
+											return parts.join(' ');
+										})
+										.join(', ');
+
+									return `${attr}="${updatedSrcset}"`;
+								}
+
+								return `${attr}="https://www.furman.edu/${value}"`;
 							});
 
 							// inject our own navigation elements
@@ -119,6 +139,25 @@ export default {
 									
 									document.documentElement.style.visibility = '';
 								</script>
+								<style>
+									.person-new-designed .tab-content,
+									.person-new-designed .tab-content p,
+									.person-new-designed .tab-content li,
+									.person-new-designed .profile-block__list .headline-06,
+									.person-new-designed .profile-block__list .paragraph-02,
+									.person-new-designed .profile-block__list .paragraph-02 a:not(:hover):not(:active) {
+										color: light-dark(#4D4D4F, #C9C9C9) !important;
+									}
+									.person-new-designed .tabbed-section .tab-content .tab-pane h3,
+									.person-new-designed .profile-block__name, .person-new-designed .profile-block__title {
+										color: light-dark(#201547, #C9C9C9) !important;
+									}
+
+									a {
+										--darkreader-text-000000: oklch(from #582c83 calc(l + 0.48) calc(c - 0.08) h);
+										color: light-dark(#582c83, var(--darkreader-text-000000)) !important;
+									}
+								</style>
 							`,
 							);
 						}
@@ -168,8 +207,8 @@ export default {
 					// The text is indeded by the theme to include divs and spans with classes for styling, but
 					// the text-only form results in undesired extra text at the end of excepts. We need to remove
 					// this text by removing text from the ellipsis to the start of the closing paragraph tag.
-					body = body.replace(/&#8230;\.\s*Continue Reading[^<]*<\/p>/g, '.</p>');
-					body = body.replace(/&#8230;\s*Continue Reading[^<]*<\/p>/g, '</p>');
+					body = body.replace(/&#8230;\.\s*Continue Reading.*?<\/p>/gi, '.</p>');
+					body = body.replace(/&#8230;\s*Continue Reading.*?<\/p>/gi, '</p>');
 
 					// Render custom elements (e.g. shi-post-card or shi-post-card-grid) on the server to HTML,
 					// ensuring that the content is visible immediately on document download and that it can

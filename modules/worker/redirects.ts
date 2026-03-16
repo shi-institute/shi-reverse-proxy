@@ -31,6 +31,10 @@ export const redirects: Record<string, string> = {
 	// redirect category pages to their custom landing pages
 	'/category/projects': '/projects',
 	'/category/services': '/services',
+	'/category/people': '/people',
+	'/category/people/staff': '/people',
+	'/category/people/affiliate': '/people',
+	'/category/people/fellow': '/people',
 
 	// overrides for furman.edu/shi-institute -> shi.institute
 	'/shi-institute/wp-content/themes/furman/assets/favicon.png': '/favicon.svg',
