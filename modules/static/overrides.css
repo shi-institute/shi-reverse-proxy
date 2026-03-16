@@ -229,6 +229,7 @@ html #page :where(.btn, button[type='submit'], .wp-block-button .wp-block-button
 	min-height: 38px;
 	display: inline-flex;
 	align-items: center;
+	height: fit-content;
 }
 html #page :where(.btn, button[type='submit'], .wp-block-button .wp-block-button__link):hover {
 	box-shadow: none !important;
@@ -239,16 +240,26 @@ html #page :where(.wp-block-button.is-style-outline .wp-block-button__link) {
 	border-width: 0 !important; /* use box-shadow instead */
 	color: inherit !important;
 }
-html #page :where(.btn.btn-secondary, button[type='submit'], .wp-block-button .wp-block-button__link):hover {
+html #page :where(.btn) {
+	border-width: 0 !important; /* use box-shadow instead */
+	color: inherit !important;
+}
+html #page :where(.btn.inherit-color) {
+	color: inherit !important;
+}
+html #page :where(.btn, button[type='submit'], .wp-block-button .wp-block-button__link):hover {
 	background-color: var(--shi-color-yellow);
 	--box-shadow-color: var(--shi-color-yellow);
 	color: var(--shi-color--on-yellow) !important;
 	text-decoration: none;
 }
-html #page :where(.btn.btn-secondary, button[type='submit'], .wp-block-button .wp-block-button__link):active {
+html #page :where(.btn, button[type='submit'], .wp-block-button .wp-block-button__link):active {
 	background-color: var(--shi-color-blue);
 	--box-shadow-color: var(--shi-color-blue);
 	color: var(--shi-color--on-blue) !important;
+}
+html #page :where(.btn a:hover, .btn a:active) {
+	color: inherit !important;
 }
 
 /* By default, the footer has a small shadow above itself.
@@ -296,6 +307,29 @@ a.wp-block-button__link[target='_blank']::after {
 		no-repeat center / contain;
 	background-color: currentColor;
 	pointer-events: none;
+}
+
+/* Force the border color on eparator blocks to be respected. */
+.wp-block-separator:not(.is-style-wide):not(.is-style-dots):not(.is-style-default) {
+	background-color: transparent !important;
+	border-color: currentColor !important;
+	border-top-width: 1px !important;
+}
+.wp-block-separator.is-style-default,
+hr {
+	border-color: var(--shi-divider-color) !important;
+	border-top-width: 1px !important;
+}
+
+/* Hide the list of submitted values on the form submission success page.
+We do this because it shows ALL values, including hidden values. */
+.coblocks-form__submitted ul {
+	display: none;
+}
+
+/* There is too much margin above form submission buttons */
+.coblocks-form__submit {
+	margin-top: 0.5rem;
 }
 
 /* Enable dark mode support. Including light and dark allows browsers to pick the 
@@ -372,4 +406,8 @@ ul.pagination {
 			}
 		}
 	}
+}
+
+input[type='hidden'] {
+	display: none;
 }
