@@ -154,6 +154,9 @@ export default {
 
 					// hide built-in navigation elemenets
 					'</head>': '<style>#navbar-secondary,#wrapper-navbar-main {display: none !important;}</style></head>',
+
+					// ensure 1Password does not fill form honeypots
+					'name="coblocks-verify-email" autocomplete="off" placeholder="Email"': `name="coblocks-verify-email" autocomplete="off" placeholder="Email" data-1p-ignore`,
 				},
 				async afterBodyReplacements(body, requestUrl, contentType) {
 					if (!contentType.includes('text/html') || typeof body !== 'string') {
