@@ -155,9 +155,39 @@ export default {
 										color: light-dark(#201547, #C9C9C9) !important;
 									}
 
+									:root {
+										--shi-color-purple: #582c83;
+										--shi-adaptive-color--purple: light-dark(var(--shi-color-purple), oklch(from var(--shi-color-purple) calc(l + 0.48) calc(c - 0.08) h));
+										--shi-adaptive-color--on-purple: light-dark(var(--shi-color--on-purple), #000);
+	
+										--shi-color-yellow: #f2be1a;
+										--shi-color--on-yellow: #000;
+										
+										--shi-color-blue: #aadeeb;
+										--shi-color--on-blue: #000;
+									}
+
 									a {
 										--darkreader-text-000000: oklch(from #582c83 calc(l + 0.48) calc(c - 0.08) h);
-										color: light-dark(#582c83, var(--darkreader-text-000000)) !important;
+										color: light-dark(var(--shi-color-purple), var(--darkreader-text-000000))) !important;
+									}
+
+									.person-new-designed .tabbed-section .nav-link:not(.active) {
+										--darkreader-text-000000: oklch(from #582c83 calc(l + 0.48) calc(c - 0.08) h);
+										color: light-dark(var(--shi-adaptive-color--purple), var(--darkreader-text-000000)) !important;
+										box-shadow: unset !important;
+										transition: 200ms ease;
+									}
+									.person-new-designed .tabbed-section .nav-link {
+										cursor: default;
+									}
+									.person-new-designed .tabbed-section .nav-link:not(.active):hover {
+										color: var(--shi-color--on-yellow) !important;
+										background-color: var(--shi-color-yellow) !important;
+									}
+									.person-new-designed .tabbed-section .nav-link:not(.active):active {
+										color: var(--shi-color--on-blue) !important;
+										background-color: var(--shi-color-blue) !important;
 									}
 								</style>
 							`,
