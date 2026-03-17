@@ -84,9 +84,11 @@ export default {
 										.split(',')
 										.map((item) => {
 											const parts = item.trim().split(' ');
-											// Only prepend if it's a relative path starting with /
+											// If it does not already look like an absolute URL, prepend the furman.edu origin
 											if (parts[0]?.startsWith('/')) {
 												parts[0] = `https://www.furman.edu${parts[0]}`;
+											} else if (!parts[0]?.startsWith('http')) {
+												parts[0] = `https://www.furman.edu/${parts[0]}`;
 											}
 											return parts.join(' ');
 										})
