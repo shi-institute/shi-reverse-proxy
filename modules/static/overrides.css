@@ -263,9 +263,10 @@ html #page :where(.btn a:hover, .btn a:active) {
 	color: inherit !important;
 }
 
-/* For plain buttons (no outline or background) we offset by the amount of padding
-so the button does not look out of line with other elements. */
-html #page :where(.btn, .wp-block-button.is-style-plain .wp-block-button__link) {
+/* For plain buttons (no outline or background) we may want to offset by the
+amount of padding so the button does not look out of line with other elements.
+The buttons must specify the .collapse-margin-and-padding class for this to occur. */
+html #page :where(.btn.collapse-margin-and-padding, .wp-block-button.collapse-margin-and-padding .wp-block-button__link) {
 	margin: -0.3375rem -0.675rem;
 	@media (min-width: 992px) {
 		margin: -0.375rem -0.75rem;
