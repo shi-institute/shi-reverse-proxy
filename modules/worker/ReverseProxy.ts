@@ -175,23 +175,15 @@ export class ReverseProxy {
 			// HTML, JavaScript, or CSS, we can use the unescaped URLs.
 			const escaped = (string: string) => (options?.isJsonString ? JSON.stringify(string).slice(1, -1) : string);
 
-			// remove all instances of the full wordpress server URL
-			text = text.replaceAll(
-				escaped(this.proxyOriginServer.origin + (this.removePath ? this.proxyOriginServer.pathname : '')),
-				escaped(requestUrl.origin),
-			);
+			// replace all instances of the full origin server server URL with a relative URL
+			text = text.replaceAll(escaped(this.proxyOriginServer.origin + (this.removePath ? this.proxyOriginServer.pathname : '')), '');
 
 			if (this.removePath) {
-				// remove instances of strings that start with the wordpress server path and are followed by a slash,	a question mark, or the end of the string
+				// remove instances of strings that start with the origin server path and are followed by a slash, a question mark, or the end of the string
 				text = text.replaceAll(escaped(this.proxyOriginServer.pathname + '/'), escaped('/'));
 				text = text.replaceAll(escaped(this.proxyOriginServer.pathname + '?'), escaped('?'));
 				text = text.replaceAll(escaped(this.proxyOriginServer.pathname), escaped(''));
 			}
-
-			// use relative paths
-			text = text.replaceAll(new RegExp(escaped(requestUrl.origin) + '/([^"\' ]*)', 'g'), (match, path) => {
-				return `/${path}`;
-			});
 
 			// also perform any additional string replacements
 			for (const [searchValue, replaceValue] of Object.entries(this.stringReplacements)) {

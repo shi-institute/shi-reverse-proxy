@@ -8,9 +8,10 @@ import { getInjectableNavigation, getNavigationMenuData } from './menu';
 import { redirects } from './redirects';
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
+	async fetch(_request, env, ctx): Promise<Response> {
 		try {
-			const requestUrl = new URL(request.url);
+			let request = _request;
+			let requestUrl = new URL(request.url);
 
 			// redirect origins to shi.institute
 			if (env.PRODUCTION && requestUrl.hostname !== 'shi.institute') {
@@ -52,7 +53,8 @@ export default {
 			// replace home page with furman.edu/shi-institute
 			// since we have not built a replacement home page on blogs.furman.edu
 			if (requestUrl.pathname === '/' && requestUrl.search === '') {
-				return Response.redirect(new URL('/shi-institute', requestUrl.origin), 302);
+				requestUrl = new URL('/shi-institute/new-home', requestUrl.origin);
+				request = new Request(requestUrl.href, request) as typeof _request;
 			}
 
 			// proxy furman.edu website resources
@@ -67,6 +69,7 @@ export default {
 				const fuProxy = new ReverseProxy({
 					originServer: new URL('https://www.furman.edu/shi-institute'),
 					afterBodyReplacements: async (body, requestUrl, contentType) => {
+						console.log('After body replacements for', requestUrl.pathname, 'with content type', contentType);
 						if (contentType.includes('text/html') && typeof body === 'string') {
 							// hide furman.edu navigation elements
 							body = body.replace(
@@ -192,6 +195,87 @@ export default {
 								</style>
 							`,
 							);
+
+							// home page style modifications
+							if (requestUrl.pathname === '/shi-institute/new-home') {
+								body = body.replace(
+									'<meta charset="utf-8">',
+									`<meta charset="utf-8">
+								<style>
+									/* Remove excessive margin (the preceding element already has a bottom margin) */
+									.module-content-block-related-degrees {
+										margin-top: 0 !important;
+									}
+									/* Ensure that the video fills the container */
+									#uploaded-hero-video {
+										width: 100%;
+										height: 100%;
+										object-fit: cover;
+									}
+									/* Do not let the diamonds leak outside of the video container */
+									[role-div="home-banner"] {
+										overflow: hidden !important;
+									}
+									/* Hide the breadcrumbs */
+									nav[aria-label="breadcrumbs"] {
+										display: none !important;
+									}
+									/* Ensure module items never get too small (vertically) such that the image is barely visible */
+									.module-content-block-related-degrees-item {
+										min-height: 280px !important;
+									}
+									/* Restore amrgin between first and following paragraphs in the WYSIWYG module */
+									.home-banner-caption-holder + p {
+										margin-top: 12px !important;
+									}
+									/* Left-align the 'Who We Are' buttons */
+									.module-content-block-wysiwyg-content-button-link {
+										justify-content: flex-start !important;
+										gap: 16px !important;
+									}
+									.module-content-block-wysiwyg-content-button-link > * {
+										margin: 0 !important;
+									}
+									/* Use Oswalkd for content block A */
+									.module-block-content-a h2 {
+										font-size: 32px !important;
+										font-family: "Oswald", sans-serif !important;
+										font-weight: 500 !important;
+										font-style: normal !important;
+									}
+									@media screen and (min-width: 992px) {
+										.module-block-content-a h2 {
+											font-size: 48px !important;
+										}
+									}
+									/* Make the recent updates module title match the other module titles */
+									.recent-updates .module-title {
+										font-size: 32px !important;
+										text-transform: unset !important;
+										background-position: -22px 7px !important;
+										background-size: 42px !important;
+									}
+									@media screen and (min-width: 992px) {
+										.recent-updates .module-title {
+											background-position: -33px 10px !important;
+											font-size: 48px !important;
+											background-size: 60px !important;
+										}
+									}
+									/* Use Shi logo instead of bell tower */
+									.bell-tower.right.logo-color-furman-purple::before {
+										background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMzYuMDM2IDM2LjAzIiBmaWxsPSIjNTgyYzgzIj4KICA8cGF0aCBkPSJNMjQuNDY4IDE1LjIyNmMuMzY5Ljg1LjU3NSAxLjc4Ny41NzcgMi43NzNoMTAuOTkxYy0uMDAyLTIuNjA4LS41NjMtNS42MTMtMS41NjMtNy44NXpNMjQuNjU3IDIwLjMyNGE3IDcgMCAwIDEtMS43NjQgMi43NTRsNy41NjQgNy45N2ExOCAxOCAwIDAgMCA0LjU4OS03LjEzN3pNMjEuMDEgMjQuMzc4Yy0uODQuMzk1LTEuNzcuNjI5LTIuNzUyLjY2MWwuMDI2IDEwLjk5YTE3LjkgMTcuOSAwIDAgMCA3LjI3NS0xLjY0N3pNMjAuMjkgMTEuMzY5YTcgNyAwIDAgMSAyLjkxMyAxLjkwNmw3Ljk3LTcuNTYzQTE4IDE4IDAgMCAwIDIzLjg3OS45NzlaTTEzLjA3OSA5LjEzNWwxLjg2MiAyLjU3M2E3IDcgMCAwIDEgMy4wNzgtLjcxN1Y3LjgwOWMtMS43MjcuMDEyLTMuNDM0LjQ3LTQuOTQgMS4zMjZNOS4zMDYgMTIuODZsMi44NTMgMS4yODNjLjMzNi0uNTA4Ljc0LS45NjUgMS4xOTMtMS4zNjhsLTEuODQyLTIuNTQ2YTEwLjIgMTAuMiAwIDAgMC0yLjIwNCAyLjYzMk0xMS4zMyAxNS44NjcgOC41IDE0LjU5NmExMC4xIDEwLjEgMCAwIDAtLjU5MyAzLjM5cTAgLjA0Mi4wMDQuMDg1bC4wMDQuMDc2IDMuMDkzLS4zNDJjLjAyMS0uNjczLjEyNS0xLjMyNS4zMjItMS45MzhNOC4xMTggMjAuMDQ4Yy4yMzUgMS4xNC42NzggMi4yNCAxLjMxNiAzLjI3bDIuNDk0LTEuODI2YTcgNyAwIDAgMS0uNzEtMS43ODd6TTE0Ljc5MiAyNy42MDdsMS4wMDEtMi45MjNhNyA3IDAgMCAxLTIuNzA4LTEuNjY5bC0yLjQ5NyAxLjgzYTEwLjIzIDEwLjIzIDAgMCAwIDQuMjA0IDIuNzYyTTYuNTkzIDI3Ljc4NWwtLjAwNy0uMDEtMi40MSAxLjc2NWExOC4wNiAxOC4wNiAwIDAgMCA4LjA1NCA1LjU0MWwuOTYxLTIuODA0YTE1LjE2IDE1LjE2IDAgMCAxLTYuNTk4LTQuNDkyTTUuNDMzIDI2LjIzOUExNC45NSAxNC45NSAwIDAgMSAzLjIwOCAyMC42bC0uMDAxLS4wMS0yLjk3NC4zMjhhMTcuOSAxNy45IDAgMCAwIDIuODA0IDcuMDg2bDIuNDAxLTEuNzZ6TTMuMDAxIDE4LjY4bC0uMDE1LS4yNDVjLS4wMS0uMTQ5LS4wMi0uMjk4LS4wMi0uNDUgMC0xLjgzNi4zNDItMy42NTYgMS4wMTctNS40MWwuMDA0LS4wMDgtMi42OTktMS4yMTJBMTcuOSAxNy45IDAgMCAwIDAgMTguMDE4YzAgLjMzNy4wMjIuNjY3LjA0IDFsMi45NjItLjMyOHpNNC43OCAxMC44MTRhMTUuMSAxNS4xIDAgMCAxIDMuODIzLTQuNTg4bC4wMDctLjAwNUw2LjkgMy44NThhMTguMSAxOC4xIDAgMCAwLTQuODE1IDUuNzU4bDIuNjg5IDEuMjA4ek0xMC4xODYgNS4xMTdhMTUuMDYgMTUuMDYgMCAwIDEgNy44MzItMi4yNDhWMGExNy45IDE3LjkgMCAwIDAtOS41NTIgMi43NmwxLjcxIDIuMzY0ek05LjcxNiAyNS41MDNsLS4wMS0uMDEyLTIuMTA3IDEuNTQzYTEzLjkgMTMuOSAwIDAgMCA1Ljk5NyA0LjA2bC44NDMtMi40NThhMTEuMyAxMS4zIDAgMCAxLTQuNzIzLTMuMTMzTTcuMDM0IDIwLjE2OGwtMi41ODIuMjg1Yy4zMjcgMS44MTIuOTk5IDMuNTEgMS45OTggNS4wNTFsMi4xMDMtMS41NC0uMDA3LS4wMWExMS4yIDExLjIgMCAwIDEtMS41MS0zLjc3MnEwLS4wMDgtLjAwMi0uMDE0TTcuNTA2IDE0LjE0OCA1LjEzIDEzLjA4MWExMy44IDEzLjggMCAwIDAtLjkxMyA0LjkwNHEuMDAyLjE3OS4wMTcuMzUzLjAwNy4xMDcuMDEyLjIxNGwyLjU4Ni0uMjg2di0uMDEzbC0uMDA3LS4xMXEtLjAwNi0uMDc4LS4wMDctLjE1OGMwLTEuMjkuMjMtMi41NzcuNjgzLTMuODI2ek01LjkxOCAxMS4zMzlsMi4zOSAxLjA3M3EuMDAyLS4wMDguMDA2LS4wMTRBMTEuMyAxMS4zIDAgMCAxIDEwLjg2IDkuMzVsLjAwOS0uMDA3LTEuNTI2LTIuMTA5YTEzLjkgMTMuOSAwIDAgMC0zLjQyNSA0LjEwNU0xMi40NTIgOC4yNDJhMTEuMjQgMTEuMjQgMCAwIDEgNS41NjUtMS41MjFoLjAwMlY0LjEyYTEzLjggMTMuOCAwIDAgMC03LjEwNyAyLjAybDEuNTI3IDIuMTF6Ii8+Cjwvc3ZnPgo=") !important;
+									}
+								</style>
+							`,
+								);
+								body = body.replace('target="_blank" href="https://shi.institute/about/"', `href="${requestUrl.origin}/about/"`);
+							}
+
+							// use relative paths for shi.institute origin references
+							body = body.replaceAll(new RegExp('https://shi.institute' + '/([^"\' ]*)', 'g'), (match, path) => {
+								return `/${path}`;
+							});
 						}
 
 						return body;

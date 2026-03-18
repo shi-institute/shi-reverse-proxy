@@ -120,9 +120,9 @@ export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl:
 	const menuData = await getNavigationMenuData(ctx);
 
 	function transformHref(href: string) {
-		if (href === '/') {
-			return '/shi-institute';
-		}
+		// if (href === '/') {
+		// 	return '/shi-institute';
+		// }
 		return href;
 	}
 
