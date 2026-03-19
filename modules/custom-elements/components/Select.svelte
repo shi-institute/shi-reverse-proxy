@@ -509,7 +509,7 @@
 		width: 16px;
 		height: 16px;
 		vertical-align: middle;
-		transition: transform 200ms ease;
+		transition: transform var(--shi-transition-200ms) ease;
 	}
 	.select.open .label svg {
 		transform: rotate(-180deg);
@@ -533,19 +533,19 @@
 		color: var(--shi-surface-color);
 		padding: 0;
 
-		transition: overlay 200ms allow-discrete; /* keep layer on top during animation */
+		transition: overlay var(--shi-transition-200ms) allow-discrete; /* keep layer on top during animation */
 
 		opacity: 0;
 		overlay: auto;
 		pointer-events: none;
 
 		&:popover-open {
-			animation: popover-open 200ms ease forwards;
+			animation: popover-open var(--shi-transition-200ms) ease forwards;
 			pointer-events: auto;
 		}
 
 		&.hasOpened:not(:popover-open) {
-			animation: popover-close 200ms ease forwards;
+			animation: popover-close var(--shi-transition-200ms) ease forwards;
 		}
 	}
 
@@ -618,8 +618,8 @@
 		user-select: none;
 		box-sizing: border-box;
 		transition:
-			background-color 120ms ease,
-			box-shadow 120ms ease;
+			background-color var(--shi-transition-120ms) ease,
+			box-shadow var(--shi-transition-120ms) ease;
 		min-height: 32px;
 		display: inline-flex;
 		align-items: center;

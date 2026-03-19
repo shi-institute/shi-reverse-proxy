@@ -144,16 +144,16 @@
 		font-size: 0.75em;
 		text-align: right;
 		padding: 4px 8px;
-		transition: opacity 200ms ease;
+		transition: opacity var(--shi-transition-200ms) ease;
 	}
 	figcaption .image-credit {
 		opacity: 0;
 		transition:
-			opacity 200ms ease,
-			visibility 200ms ease,
-			background-color 200ms ease,
-			color 200ms ease,
-			backdrop-filter 200ms ease;
+			opacity var(--shi-transition-200ms) ease,
+			visibility var(--shi-transition-200ms) ease,
+			background-color var(--shi-transition-200ms) ease,
+			color var(--shi-transition-200ms) ease,
+			backdrop-filter var(--shi-transition-200ms) ease;
 	}
 	figcaption:hover .image-credit,
 	figcaption:focus .image-credit {
@@ -200,8 +200,8 @@
 		user-select: none;
 		box-sizing: border-box;
 		transition:
-			background-color 120ms ease,
-			box-shadow 120ms ease;
+			background-color var(--shi-transition-120ms) ease,
+			box-shadow var(--shi-transition-120ms) ease;
 		min-height: 38px;
 		display: inline-flex;
 		align-items: center;

@@ -276,6 +276,51 @@ export default {
 							body = body.replaceAll(new RegExp('https://shi.institute' + '/([^"\' ]*)', 'g'), (match, path) => {
 								return `/${path}`;
 							});
+
+							// disable video autoplay and other animations when prefers-reduced-motion is set to reduced
+							body = body.replace(
+								'<meta charset="utf-8">',
+								`<meta charset="utf-8">
+								<script type="module">
+									try {
+										// If the current user prefers reduced motion, disable autoplay on any video elements
+										// that are currently set to automatically play.
+										const allowAutoplay = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+										if (!allowAutoplay) {
+												// For regular video elements with autoplay enabled:
+												for (const videoElement of document.querySelectorAll('video[autoplay="autoplay"]')) {
+														console.log('Disabling autoplay for video element:', videoElement);
+														videoElement.removeAttribute('autoplay');
+
+														// Pause the video in case it has already started playing
+														videoElement.pause();
+												}
+
+												// For vimeo video iframes:
+												for (const iframeElement of document.querySelectorAll(\`iframe[src^='https://player.vimeo.com'][src*='autoplay=1']\`)) {
+														const srcUrl = new URL(iframeElement.src);
+														srcUrl.searchParams.delete('autoplay');
+														iframeElement.src = srcUrl.href;
+
+														// Pause the Vimeo player in case it has already started playing
+														const player = new Vimeo.Player(iframeElement);
+														player.pause();
+												}
+										}
+									} catch (error) {
+										console.error('Error disabling autoplay for video elements:', error);
+									}
+								</script>
+								<style>
+									@media (prefers-reduced-motion: reduce) {
+										.module-content-block-related-degrees-item,
+										a,
+										.module-content-block-page-link-item-arrows {
+											transition: none !important;
+										}
+									}
+								</style>`,
+							);
 						}
 
 						return body;

@@ -113,7 +113,7 @@
 		display: flex;
 		align-items: center;
 		width: var(--initial-width);
-		transition: width 200ms ease-in-out;
+		transition: width var(--shi-transition-200ms) ease-in-out;
 	}
 
 	.search-wrapper:has(input:hover),
@@ -137,10 +137,10 @@
 		border-radius: 24px;
 		width: 100%;
 		transition:
-			width 200ms ease-in-out,
-			background-color 120ms ease,
-			color 120ms ease,
-			box-shadow 120ms ease;
+			width var(--shi-transition-200ms) ease-in-out,
+			background-color var(--shi-transition-120ms) ease,
+			color var(--shi-transition-120ms) ease,
+			box-shadow var(--shi-transition-120ms) ease;
 		font-family: 'Epilogue', sans-serif;
 		font-size: 0.95rem;
 		font-weight: 400;
@@ -191,7 +191,7 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		transition: 120ms ease;
+		transition: var(--shi-transition-120ms) ease;
 		color: var(--color--base);
 	}
 	button svg {

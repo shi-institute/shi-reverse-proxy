@@ -95,7 +95,7 @@
 		border-bottom-style: solid;
 		border-bottom-color: transparent;
 		display: inline-block;
-		transition: 120ms;
+		transition: var(--shi-transition-120ms);
 		user-select: none;
 	}
 	a.current span {

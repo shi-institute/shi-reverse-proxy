@@ -35,8 +35,8 @@
 		stroke-dasharray: 43.97;
 		transform: rotate(-90deg);
 		transform-origin: 50% 50%;
-		transition: all 250ms linear;
-		animation: progress-ring-animation 2s linear infinite;
+		transition: all var(--shi-transition-250ms) linear;
+		animation: progress-ring-animation var(--shi-transition-200ms) linear infinite;
 	}
 
 	@keyframes progress-ring-animation {

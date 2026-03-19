@@ -35,4 +35,17 @@
 		oklch(from var(--shi-color-purple) calc(l + 0.56) calc(c - 0.08) h)
 	);
 	--shi-navbar-color--active: light-dark(var(--shi-color-midnight), oklch(from var(--shi-color-purple) calc(l + 0.36) calc(c - 0.08) h));
+
+	--shi-transition-120ms: 120ms;
+	--shi-transition-150ms: 150ms;
+	--shi-transition-200ms: 200ms;
+	--shi-transition-250ms: 250ms;
+}
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--shi-transition-120ms: 0ms;
+		--shi-transition-150ms: 0ms;
+		--shi-transition-200ms: 0ms;
+		--shi-transition-250ms: 0ms;
+	}
 }

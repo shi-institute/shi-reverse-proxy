@@ -127,8 +127,8 @@
 		background-color: var(--shi-color-purple);
 		color: var(--shi-color--on-purple);
 		transition:
-			background-color 120ms ease,
-			box-shadow 120ms ease;
+			background-color var(--shi-transition-120ms) ease,
+			box-shadow var(--shi-transition-120ms) ease;
 		border: 0;
 		font-size: 12px;
 		font-family: 'Oswald', sans-serif;
@@ -175,18 +175,18 @@
 		display: flex;
 		flex-direction: column;
 
-		animation: popover-show 200ms forwards cubic-bezier(0.16, 1, 0.3, 1);
+		animation: popover-show var(--shi-transition-200ms) forwards cubic-bezier(0.16, 1, 0.3, 1);
 	}
 	dialog::backdrop {
-		animation: backdrop-fade-in 200ms forwards;
+		animation: backdrop-fade-in var(--shi-transition-200ms) forwards;
 		background: rgba(0, 0, 0, 0.5);
 	}
 
 	dialog.closing {
-		animation: popover-hide 200ms forwards cubic-bezier(0.16, 1, 0.3, 1);
+		animation: popover-hide var(--shi-transition-200ms) forwards cubic-bezier(0.16, 1, 0.3, 1);
 	}
 	dialog.closing::backdrop {
-		animation: backdrop-fade-out 200ms forwards;
+		animation: backdrop-fade-out var(--shi-transition-200ms) forwards;
 	}
 
 	@keyframes popover-show {

@@ -199,8 +199,8 @@ body {
 		color: var(--shi-color--on-purple) !important;
 		cursor: default;
 		transition:
-			background-color 120ms ease,
-			color 120ms ease;
+			background-color var(--shi-transition-120ms) ease,
+			color var(--shi-transition-120ms) ease;
 
 		i {
 			line-height: 16px;
@@ -224,8 +224,8 @@ since the button may have been configured to have a different default
 style via the blocks editor. */
 html #page :where(.btn, button[type='submit'], .wp-block-button .wp-block-button__link) {
 	transition:
-		background-color 120ms ease,
-		box-shadow 120ms ease;
+		background-color var(--shi-transition-120ms) ease,
+		box-shadow var(--shi-transition-120ms) ease;
 	min-height: 38px;
 	display: inline-flex;
 	align-items: center;
@@ -350,7 +350,7 @@ correct mode based on the user's preference. */
 }
 a {
 	color: var(--shi-adaptive-color--purple);
-	transition: 120ms color ease;
+	transition: var(--shi-transition-120ms) color ease;
 	&:hover {
 		color: light-dark(var(--shi-color-purple), oklch(from var(--shi-color-purple) calc(l + 0.42) calc(c - 0.08) h));
 	}
@@ -395,8 +395,8 @@ ul.pagination {
 			background-color: var(--shi-surface-background-color);
 			color: var(--shi-surface-color);
 			transition:
-				120ms background-color ease,
-				120ms color ease;
+				var(--shi-transition-120ms) background-color ease,
+				var(--shi-transition-120ms) color ease;
 		}
 		.page-link.current {
 			background-color: var(--shi-color-purple);
