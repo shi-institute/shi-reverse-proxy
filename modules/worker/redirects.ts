@@ -28,16 +28,9 @@ export const redirects: Record<string, string> = {
 	'/login': '/wp-login.php',
 	'/sign-in': '/wp-login.php',
 
-	// redirect category pages to their custom landing pages
-	'/category/projects': '/projects',
-	'/category/services': '/services',
-	'/category/people': '/people',
-	'/category/people/staff': '/people',
-	'/category/people/affiliate': '/people',
-	'/category/people/fellow': '/people',
-
 	// overrides for furman.edu/shi-institute -> shi.institute
 	'/shi-institute/wp-content/themes/furman/assets/favicon.png': '/favicon.svg',
 	'/favicon.ico': '/favicon.svg',
 	'/favicon.svg': '/files/2026/03/shi-favicon.svg',
+	'/shi-institute': '/',
 };

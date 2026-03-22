@@ -40,6 +40,7 @@
 	--shi-transition-150ms: 150ms;
 	--shi-transition-200ms: 200ms;
 	--shi-transition-250ms: 250ms;
+	--shi-transition-2s: 2s;
 }
 @media (prefers-reduced-motion: reduce) {
 	:root {
@@ -47,5 +48,6 @@
 		--shi-transition-150ms: 0ms;
 		--shi-transition-200ms: 0ms;
 		--shi-transition-250ms: 0ms;
+		--shi-transition-2s: 0s;
 	}
 }

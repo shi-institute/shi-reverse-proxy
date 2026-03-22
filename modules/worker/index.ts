@@ -1,14 +1,21 @@
 import { parseHTML } from 'linkedom';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { renderCustomElements } from '../custom-elements/server';
-import blogCssOverrides from '../static/overrides.css';
+import furmanDarkModeOverrides from '../static/furman-edu-dark-mode.html';
+import furmanHomeOverrides from '../static/furman-edu-home-overrides.css';
+import furmanVideoPrefersReducedMotionSupport from '../static/furman-edu-video-reduce-motion-support.html';
 import { ReverseProxy } from './ReverseProxy';
 import handleApiRequest from './api';
+import { getFooterHTML } from './footer';
 import { getInjectableNavigation, getNavigationMenuData } from './menu';
 import { redirects } from './redirects';
 
 export default {
-	async fetch(_request, env, ctx): Promise<Response> {
+	async fetch(
+		_request: Request<unknown, IncomingRequestCfProperties<unknown>>,
+		env: Env,
+		ctx: ExecutionContext<{ adminBarHref?: string }>,
+	): Promise<Response> {
 		try {
 			let request = _request;
 			let requestUrl = new URL(request.url);
@@ -60,16 +67,25 @@ export default {
 			// proxy furman.edu website resources
 			const isShiInstitutePath = requestUrl.pathname.startsWith('/shi-institute');
 			const isFurmanThemeAsset = requestUrl.pathname.startsWith('/wp-content/themes/furman');
-			const isPersonPage = requestUrl.pathname.startsWith('/people/') && requestUrl.pathname.split('/').filter(Boolean).length === 2; // only proxy /people/{slug}
+			const isPersonPage = requestUrl.pathname.startsWith('/people/') && requestUrl.pathname.split('/').filter(Boolean).length === 3; // only proxy /people/{type}/{slug}
 			if (isShiInstitutePath || isFurmanThemeAsset || isPersonPage) {
+				// re-write the request URL to point to furman.edu/people/{slug} when it is a person page
+				let personType: string | null = null;
+				if (isPersonPage) {
+					personType = requestUrl.pathname.split('/')[2] ?? null;
+					requestUrl.pathname = requestUrl.pathname.replace(`/people/${personType}/`, '/people/');
+					request = new Request(requestUrl.href, request) as typeof _request;
+				}
+
 				if (requestUrl.pathname.includes('wp-content/uploads')) {
 					return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://www.furman.edu'), 307);
 				}
 
+				ctx.props.adminBarHref = 'https://www.furman.edu/shi-institute/wp-admin';
+
 				const fuProxy = new ReverseProxy({
 					originServer: new URL('https://www.furman.edu/shi-institute'),
 					afterBodyReplacements: async (body, requestUrl, contentType) => {
-						console.log('After body replacements for', requestUrl.pathname, 'with content type', contentType);
 						if (contentType.includes('text/html') && typeof body === 'string') {
 							// hide furman.edu navigation elements
 							body = body.replace(
@@ -112,163 +128,12 @@ export default {
 							// inject dark mode support via darkreader
 							body = body.replace(
 								'<meta charset="utf-8">',
-								`<meta charset="utf-8">
-								<style>
-									html { background-color: #212121; }
-									.primary-hero-left-caption::before,
-									.page-banner.tertiary-hero .caption::before,
-									.module-content-block-media-carousel-slider::before {
-										filter: invert(80%);
-									}
-									.module-content-block-media-carousel-slider .slick-dots li.slick-active a {
-										--darkreader-text-ffffff: #000;
-									}
-								</style>
-								<script>document.documentElement.style.visibility = 'hidden';</script>
-								<script type="module">
-									import * as DarkReader from "https://esm.run/darkreader";
-
-									DarkReader.setFetchMethod((url) => {
-										let headers = new Headers();
-										headers.append("Access-Control-Allow-Origin", "*");
-
-										return window.fetch(url, {
-											headers,
-											mode: "no-cors",
-										});
-									});
-
-									DarkReader.auto({
-										brightness: 125,
-									});
-									
-									document.documentElement.style.visibility = '';
-								</script>
-								<style>
-									.person-new-designed .tab-content,
-									.person-new-designed .tab-content p,
-									.person-new-designed .tab-content li,
-									.person-new-designed .profile-block__list .headline-06,
-									.person-new-designed .profile-block__list .paragraph-02,
-									.person-new-designed .profile-block__list .paragraph-02 a:not(:hover):not(:active) {
-										color: light-dark(#4D4D4F, #C9C9C9) !important;
-									}
-									.person-new-designed .tabbed-section .tab-content .tab-pane h3,
-									.person-new-designed .profile-block__name, .person-new-designed .profile-block__title {
-										color: light-dark(#201547, #C9C9C9) !important;
-									}
-
-									:root {
-										--shi-color-purple: #582c83;
-										--shi-adaptive-color--purple: light-dark(var(--shi-color-purple), oklch(from var(--shi-color-purple) calc(l + 0.48) calc(c - 0.08) h));
-										--shi-adaptive-color--on-purple: light-dark(var(--shi-color--on-purple), #000);
-	
-										--shi-color-yellow: #f2be1a;
-										--shi-color--on-yellow: #000;
-										
-										--shi-color-blue: #aadeeb;
-										--shi-color--on-blue: #000;
-									}
-
-									a {
-										--darkreader-text-000000: oklch(from #582c83 calc(l + 0.48) calc(c - 0.08) h);
-										color: light-dark(var(--shi-color-purple), var(--darkreader-text-000000))) !important;
-									}
-
-									.person-new-designed .tabbed-section .nav-link:not(.active) {
-										--darkreader-text-000000: oklch(from #582c83 calc(l + 0.48) calc(c - 0.08) h);
-										color: light-dark(var(--shi-adaptive-color--purple), var(--darkreader-text-000000)) !important;
-										box-shadow: unset !important;
-										transition: 200ms ease;
-									}
-									.person-new-designed .tabbed-section .nav-link {
-										cursor: default;
-									}
-									.person-new-designed .tabbed-section .nav-link:not(.active):hover {
-										color: var(--shi-color--on-yellow) !important;
-										background-color: var(--shi-color-yellow) !important;
-									}
-									.person-new-designed .tabbed-section .nav-link:not(.active):active {
-										color: var(--shi-color--on-blue) !important;
-										background-color: var(--shi-color-blue) !important;
-									}
-								</style>
-							`,
+								`<meta charset="utf-8">${furmanDarkModeOverrides}<!-- home-mods --><!-- reduce-motion-mods -->`,
 							);
 
 							// home page style modifications
 							if (requestUrl.pathname === '/shi-institute/new-home') {
-								body = body.replace(
-									'<meta charset="utf-8">',
-									`<meta charset="utf-8">
-								<style>
-									/* Remove excessive margin (the preceding element already has a bottom margin) */
-									.module-content-block-related-degrees {
-										margin-top: 0 !important;
-									}
-									/* Ensure that the video fills the container */
-									#uploaded-hero-video {
-										width: 100%;
-										height: 100%;
-										object-fit: cover;
-									}
-									/* Do not let the diamonds leak outside of the video container */
-									[role-div="home-banner"] {
-										overflow: hidden !important;
-									}
-									/* Hide the breadcrumbs */
-									nav[aria-label="breadcrumbs"] {
-										display: none !important;
-									}
-									/* Ensure module items never get too small (vertically) such that the image is barely visible */
-									.module-content-block-related-degrees-item {
-										min-height: 280px !important;
-									}
-									/* Restore amrgin between first and following paragraphs in the WYSIWYG module */
-									.home-banner-caption-holder + p {
-										margin-top: 12px !important;
-									}
-									/* Left-align the 'Who We Are' buttons */
-									.module-content-block-wysiwyg-content-button-link {
-										justify-content: flex-start !important;
-										gap: 16px !important;
-									}
-									.module-content-block-wysiwyg-content-button-link > * {
-										margin: 0 !important;
-									}
-									/* Use Oswalkd for content block A */
-									.module-block-content-a h2 {
-										font-size: 32px !important;
-										font-family: "Oswald", sans-serif !important;
-										font-weight: 500 !important;
-										font-style: normal !important;
-									}
-									@media screen and (min-width: 992px) {
-										.module-block-content-a h2 {
-											font-size: 48px !important;
-										}
-									}
-									/* Make the recent updates module title match the other module titles */
-									.recent-updates .module-title {
-										font-size: 32px !important;
-										text-transform: unset !important;
-										background-position: -22px 7px !important;
-										background-size: 42px !important;
-									}
-									@media screen and (min-width: 992px) {
-										.recent-updates .module-title {
-											background-position: -33px 10px !important;
-											font-size: 48px !important;
-											background-size: 60px !important;
-										}
-									}
-									/* Use Shi logo instead of bell tower */
-									.bell-tower.right.logo-color-furman-purple::before {
-										background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMzYuMDM2IDM2LjAzIiBmaWxsPSIjNTgyYzgzIj4KICA8cGF0aCBkPSJNMjQuNDY4IDE1LjIyNmMuMzY5Ljg1LjU3NSAxLjc4Ny41NzcgMi43NzNoMTAuOTkxYy0uMDAyLTIuNjA4LS41NjMtNS42MTMtMS41NjMtNy44NXpNMjQuNjU3IDIwLjMyNGE3IDcgMCAwIDEtMS43NjQgMi43NTRsNy41NjQgNy45N2ExOCAxOCAwIDAgMCA0LjU4OS03LjEzN3pNMjEuMDEgMjQuMzc4Yy0uODQuMzk1LTEuNzcuNjI5LTIuNzUyLjY2MWwuMDI2IDEwLjk5YTE3LjkgMTcuOSAwIDAgMCA3LjI3NS0xLjY0N3pNMjAuMjkgMTEuMzY5YTcgNyAwIDAgMSAyLjkxMyAxLjkwNmw3Ljk3LTcuNTYzQTE4IDE4IDAgMCAwIDIzLjg3OS45NzlaTTEzLjA3OSA5LjEzNWwxLjg2MiAyLjU3M2E3IDcgMCAwIDEgMy4wNzgtLjcxN1Y3LjgwOWMtMS43MjcuMDEyLTMuNDM0LjQ3LTQuOTQgMS4zMjZNOS4zMDYgMTIuODZsMi44NTMgMS4yODNjLjMzNi0uNTA4Ljc0LS45NjUgMS4xOTMtMS4zNjhsLTEuODQyLTIuNTQ2YTEwLjIgMTAuMiAwIDAgMC0yLjIwNCAyLjYzMk0xMS4zMyAxNS44NjcgOC41IDE0LjU5NmExMC4xIDEwLjEgMCAwIDAtLjU5MyAzLjM5cTAgLjA0Mi4wMDQuMDg1bC4wMDQuMDc2IDMuMDkzLS4zNDJjLjAyMS0uNjczLjEyNS0xLjMyNS4zMjItMS45MzhNOC4xMTggMjAuMDQ4Yy4yMzUgMS4xNC42NzggMi4yNCAxLjMxNiAzLjI3bDIuNDk0LTEuODI2YTcgNyAwIDAgMS0uNzEtMS43ODd6TTE0Ljc5MiAyNy42MDdsMS4wMDEtMi45MjNhNyA3IDAgMCAxLTIuNzA4LTEuNjY5bC0yLjQ5NyAxLjgzYTEwLjIzIDEwLjIzIDAgMCAwIDQuMjA0IDIuNzYyTTYuNTkzIDI3Ljc4NWwtLjAwNy0uMDEtMi40MSAxLjc2NWExOC4wNiAxOC4wNiAwIDAgMCA4LjA1NCA1LjU0MWwuOTYxLTIuODA0YTE1LjE2IDE1LjE2IDAgMCAxLTYuNTk4LTQuNDkyTTUuNDMzIDI2LjIzOUExNC45NSAxNC45NSAwIDAgMSAzLjIwOCAyMC42bC0uMDAxLS4wMS0yLjk3NC4zMjhhMTcuOSAxNy45IDAgMCAwIDIuODA0IDcuMDg2bDIuNDAxLTEuNzZ6TTMuMDAxIDE4LjY4bC0uMDE1LS4yNDVjLS4wMS0uMTQ5LS4wMi0uMjk4LS4wMi0uNDUgMC0xLjgzNi4zNDItMy42NTYgMS4wMTctNS40MWwuMDA0LS4wMDgtMi42OTktMS4yMTJBMTcuOSAxNy45IDAgMCAwIDAgMTguMDE4YzAgLjMzNy4wMjIuNjY3LjA0IDFsMi45NjItLjMyOHpNNC43OCAxMC44MTRhMTUuMSAxNS4xIDAgMCAxIDMuODIzLTQuNTg4bC4wMDctLjAwNUw2LjkgMy44NThhMTguMSAxOC4xIDAgMCAwLTQuODE1IDUuNzU4bDIuNjg5IDEuMjA4ek0xMC4xODYgNS4xMTdhMTUuMDYgMTUuMDYgMCAwIDEgNy44MzItMi4yNDhWMGExNy45IDE3LjkgMCAwIDAtOS41NTIgMi43NmwxLjcxIDIuMzY0ek05LjcxNiAyNS41MDNsLS4wMS0uMDEyLTIuMTA3IDEuNTQzYTEzLjkgMTMuOSAwIDAgMCA1Ljk5NyA0LjA2bC44NDMtMi40NThhMTEuMyAxMS4zIDAgMCAxLTQuNzIzLTMuMTMzTTcuMDM0IDIwLjE2OGwtMi41ODIuMjg1Yy4zMjcgMS44MTIuOTk5IDMuNTEgMS45OTggNS4wNTFsMi4xMDMtMS41NC0uMDA3LS4wMWExMS4yIDExLjIgMCAwIDEtMS41MS0zLjc3MnEwLS4wMDgtLjAwMi0uMDE0TTcuNTA2IDE0LjE0OCA1LjEzIDEzLjA4MWExMy44IDEzLjggMCAwIDAtLjkxMyA0LjkwNHEuMDAyLjE3OS4wMTcuMzUzLjAwNy4xMDcuMDEyLjIxNGwyLjU4Ni0uMjg2di0uMDEzbC0uMDA3LS4xMXEtLjAwNi0uMDc4LS4wMDctLjE1OGMwLTEuMjkuMjMtMi41NzcuNjgzLTMuODI2ek01LjkxOCAxMS4zMzlsMi4zOSAxLjA3M3EuMDAyLS4wMDguMDA2LS4wMTRBMTEuMyAxMS4zIDAgMCAxIDEwLjg2IDkuMzVsLjAwOS0uMDA3LTEuNTI2LTIuMTA5YTEzLjkgMTMuOSAwIDAgMC0zLjQyNSA0LjEwNU0xMi40NTIgOC4yNDJhMTEuMjQgMTEuMjQgMCAwIDEgNS41NjUtMS41MjFoLjAwMlY0LjEyYTEzLjggMTMuOCAwIDAgMC03LjEwNyAyLjAybDEuNTI3IDIuMTF6Ii8+Cjwvc3ZnPgo=") !important;
-									}
-								</style>
-							`,
-								);
+								body = body.replace('<!-- home-mods -->', `<style>${furmanHomeOverrides}</style>`);
 								body = body.replace('target="_blank" href="https://shi.institute/about/"', `href="${requestUrl.origin}/about/"`);
 							}
 
@@ -278,82 +143,53 @@ export default {
 							});
 
 							// disable video autoplay and other animations when prefers-reduced-motion is set to reduced
-							body = body.replace(
-								'<meta charset="utf-8">',
-								`<meta charset="utf-8">
-								<script type="module">
-									try {
-										// If the current user prefers reduced motion, disable autoplay on any video elements
-										// that are currently set to automatically play.
-										const allowAutoplay = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-										if (!allowAutoplay) {
-												// For regular video elements with autoplay enabled:
-												for (const videoElement of document.querySelectorAll('video[autoplay="autoplay"]')) {
-														console.log('Disabling autoplay for video element:', videoElement);
-														videoElement.removeAttribute('autoplay');
+							body = body.replace('<!-- reduce-motion-mods -->', furmanVideoPrefersReducedMotionSupport);
 
-														// Pause the video in case it has already started playing
-														videoElement.pause();
-												}
-
-												// For vimeo video iframes:
-												for (const iframeElement of document.querySelectorAll(\`iframe[src^='https://player.vimeo.com'][src*='autoplay=1']\`)) {
-														const srcUrl = new URL(iframeElement.src);
-														srcUrl.searchParams.delete('autoplay');
-														iframeElement.src = srcUrl.href;
-
-														// Pause the Vimeo player in case it has already started playing
-														const player = new Vimeo.Player(iframeElement);
-														player.pause();
-												}
-										}
-									} catch (error) {
-										console.error('Error disabling autoplay for video elements:', error);
-									}
-								</script>
-								<style>
-									@media (prefers-reduced-motion: reduce) {
-										.module-content-block-related-degrees-item,
-										a,
-										.module-content-block-page-link-item-arrows {
-											transition: none !important;
-										}
-									}
-								</style>`,
-							);
+							// replace footer with the one from the WordPress blog site
+							const footerHTML = await getFooterHTML(ctx);
+							if (footerHTML) {
+								body = body.replace(/<footer[\s\S]*?<\/footer>/, '');
+								body = body.replace('</body>', `${footerHTML}</body>`);
+							}
 						}
 
 						return body;
 					},
 				});
 
-				return fuProxy.fetch(request);
+				const proxyResponse = await fuProxy.fetch(request);
+				if (proxyResponse.status !== 404) {
+					return proxyResponse;
+				}
+
+				// in the case of a 404 for a profile page, we need to undo the
+				// URL rewrite so we can show the fallback page on the blog site
+				if (isPersonPage && personType) {
+					requestUrl.pathname = requestUrl.pathname.replace('/people/', `/people/${personType}/`);
+					request = new Request(requestUrl.href, request) as typeof _request;
+				}
 			}
 
-			// proxy all remaining requests to the blogs.furman.edu/shi-applied-research site
+			// proxy all remaining requests to the blogs.furman.edu site
 			const blogProxy = new ReverseProxy({
-				originServer: new URL('https://blogs.furman.edu/shi-applied-research'),
+				originServer: new URL('https://blogs.furman.edu/jbtest'),
 				notFoundPaths: ['/.well-known/appspecific/com.chrome.devtools.json'],
 				stringReplacements: {
-					'blogs.furman.edu/shi-applied-research': '',
-					'blogs.furman.edu/': 'shi.institute/', // search results link label
 					'shi.institute/Shibboleth.sso': 'blogs.furman.edu/Shibboleth.sso', // fix login redirect
-					'wpmucdn.com/shi.institute': 'wpmucdn.com/blogs.furman.edu',
+					'wpmucdn.com/jbtest': 'wpmucdn.com/blogs.furman.edu',
 					[`"This is an internal version of The Shi Institute's website. Use the live version (https://shi.institute) when sharing or distributing links."`]:
 						'',
 
 					// use the text presentation form of the arrow to stop it from converting to an emoji variant: https://stackoverflow.com/a/54026677
 					'↗': '↗︎',
 
-					// inject our own stylesheet to override the WordPress theme's styles
-					'<!-- #wrapper-navbar end -->': `<!-- #wrapper-navbar end --><!-- injected-nav --><style>${blogCssOverrides}</style>`,
-					'<meta charset="UTF-8">': `<meta charset="UTF-8"><meta name="darkreader-lock">`,
-
 					// inject our own navigation elements
-					'<!-- injected-nav -->': `<!-- injected-nav -->${await getInjectableNavigation(ctx, requestUrl)}`,
+					'</header>': `${await getInjectableNavigation(ctx, requestUrl)}</header>`,
 
-					// hide built-in navigation elemenets
-					'</head>': '<style>#navbar-secondary,#wrapper-navbar-main {display: none !important;}</style></head>',
+					// hide built-in navigation elements
+					'</head>': '<style>header>div:nth-child(1),header>div:nth-child(2){display:none !important;}</style></head>',
+					// stop WordPress from adding margin before our injected custom navigation elements
+					'</style></head>': '<style>header>*{margin:0 !important;}</style></head>',
 
 					// ensure 1Password does not fill form honeypots
 					'name="coblocks-verify-email" autocomplete="off" placeholder="Email"': `name="coblocks-verify-email" autocomplete="off" placeholder="Email" data-1p-ignore`,
@@ -362,14 +198,6 @@ export default {
 					if (!contentType.includes('text/html') || typeof body !== 'string') {
 						return;
 					}
-
-					// The WordPress theme adds "…. Continue Reading <title>" to the end of post excerpts, even
-					// when the excerppt is only a string. In this case, it is usally rendered in a paragrahp tag.
-					// The text is indeded by the theme to include divs and spans with classes for styling, but
-					// the text-only form results in undesired extra text at the end of excepts. We need to remove
-					// this text by removing text from the ellipsis to the start of the closing paragraph tag.
-					body = body.replace(/&#8230;\.\s*Continue Reading.*?<\/p>/gi, '.</p>');
-					body = body.replace(/&#8230;\s*Continue Reading.*?<\/p>/gi, '</p>');
 
 					// Render custom elements (e.g. shi-post-card or shi-post-card-grid) on the server to HTML,
 					// ensuring that the content is visible immediately on document download and that it can
@@ -383,7 +211,7 @@ export default {
 							if (componentName === 'PostCardGrid' && requestUrl.pathname === '/projects/') {
 								const tagsIdStrings = requestUrl.searchParams.getAll('tag');
 								const tagIds = tagsIdStrings?.map((s) => parseInt(s.trim())).filter((n) => Number.isInteger(n)) ?? [];
-								return { ...props, tagIds };
+								return { ...props, taxonomies: { ...(props.taxonomies || {}), 'project-tag': tagIds } };
 							}
 						},
 					});
@@ -403,7 +231,7 @@ export default {
 			});
 		}
 	},
-} satisfies ExportedHandler<Env>;
+};
 
 // Replaces fetch with a modified fetch. In any context where
 // fetchStorage.run() has been called, the first argument to

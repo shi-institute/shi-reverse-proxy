@@ -1,0 +1,583 @@
+/*
+  This file contains custom CSS overrides for the WordPress site.
+	The WordPress site includes a copy of this file. For convienience
+	and change tracking, changes should be made in this file and then
+	copied to the WordPress site at:
+	https://blogs.furman.edu/jbtest/wp-admin/site-editor.php?p=%2Fstyles&section=%2Fcss
+*/
+
+@import 'https://shi.institute/custom-elements.css';
+
+/* Allow transitions to use keywords such as auto or max-content.
+See: https://developer.chrome.com/docs/css-ui/animate-to-height-auto */
+:root {
+	interpolate-size: allow-keywords;
+}
+
+/* Enable dark mode support. Including light and dark allows browsers to pick the 
+correct mode based on the user's preference. */
+html {
+	color-scheme: light dark;
+	--original--wp--preset--color--custom-shi-divider: var(--wp--preset--color--custom-shi-divider);
+	--original--wp--preset--color--custom-surface-background: var(--wp--preset--color--custom-surface-background);
+	--original--wp--preset--color--custom-surface-text: var(--wp--preset--color--custom-surface-text);
+	--original--wp--preset--color--custom-furman-adaptive-purple: var(--wp--preset--color--custom-furman-adaptive-purple);
+	--original--wp--preset--color--custom-furman-on-adaptive-purple: var(--wp--preset--color--custom-furman-on-adaptive-purple);
+	--original--wp--preset--color--accent-4: var(--wp--preset--color--accent-4);
+	--original--wp--preset--color--custom-furman-gray: var(--wp--preset--color--custom-furman-gray);
+}
+body {
+	background-color: var(--shi-surface-background-color);
+	color: var(--shi-surface-color);
+	--wp--preset--color--custom-shi-divider: light-dark(var(--original--wp--preset--color--custom-shi-divider), var(--shi-divider-color));
+	--wp--preset--color--custom-surface-background: light-dark(
+		var(--original--wp--preset--color--custom-surface-background),
+		var(--shi-surface-background-color)
+	);
+	--wp--preset--color--custom-surface-text: light-dark(var(--original--wp--preset--color--custom-surface-text), var(--shi-surface-color));
+	--wp--preset--color--custom-furman-adaptive-purple: light-dark(
+		var(--original--wp--preset--color--custom-furman-adaptive-purple),
+		var(--shi-adaptive-color--purple)
+	);
+	--wp--preset--color--custom-furman-on-adaptive-purple: light-dark(
+		var(--original--wp--preset--color--custom-furman-on-adaptive-purple),
+		var(--shi-adaptive-color--on-purple)
+	);
+	--wp--preset--color--accent-4: light-dark(var(--original--wp--preset--color--accent-4), #aaaaaa);
+	--wp--preset--color--custom-furman-gray: light-dark(var(--original--wp--preset--color--custom-furman-gray), #c5c7c9);
+}
+
+/* Allow the header to to contain a sticky element. */
+header {
+	display: contents;
+}
+
+/* Alternate the colors for the post cards that have color-themed lines */
+.wp-block-query > ul:has(li article.post-card-with-overline) {
+	li {
+		&:nth-child(1n) article {
+			--accent-color: light-dark(
+				var(--wp--preset--color--custom-furman-purple),
+				oklch(from var(--wp--preset--color--custom-furman-purple) calc(l + 0.22) c h)
+			);
+		}
+		&:nth-child(2n) article {
+			--accent-color: var(--wp--preset--color--custom-furman-green);
+		}
+		&:nth-child(3n) article {
+			--accent-color: var(--wp--preset--color--custom-furman-blue);
+		}
+		&:nth-child(4n) article {
+			--accent-color: var(--wp--preset--color--custom-furman-red);
+		}
+		&:nth-child(5n) article {
+			--accent-color: var(--wp--preset--color--custom-furman-yellow);
+		}
+		&:nth-child(6n) article {
+			--accent-color: #438889;
+		}
+	}
+}
+
+/* Make the hamburger menu button look like a Furman-style menu. */
+.menu-always-mobile > button {
+	width: 60px;
+	height: 60px;
+	font-family: 'Oswald' !important;
+	font-weight: 400 !important;
+	text-transform: uppercase !important;
+	font-size: 0 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	flex-grow: 1 !important;
+	aspect-ratio: 1;
+}
+.menu-always-mobile > button::before {
+	content: 'hi';
+	position: absolute;
+	top: 12px;
+	background-color: currentColor;
+	mask-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2226%22%20viewBox%3D%220%200%2040%2014%22%3E%3Cg%20transform%3D%22translate(0.397%201.088)%22%3E%3Cline%20x2%3D%2240%22%20transform%3D%22translate(-0.397%20-0.088)%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%3E%3C%2Fline%3E%3Cline%20x2%3D%2240%22%20transform%3D%22translate(-0.397%205.912)%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%3E%3C%2Fline%3E%3Cline%20x2%3D%2240%22%20transform%3D%22translate(-0.397%2011.912)%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%3E%3C%2Fline%3E%3C%2Fg%3E%3C%2Fsvg%3E');
+	mask-position: center;
+	mask-size: contain;
+	mask-repeat: no-repeat;
+	width: 26px;
+	font-size: 12px;
+}
+.menu-always-mobile > button::after {
+	content: 'Menu';
+	position: absolute;
+	bottom: 12px;
+	font-size: 12px;
+}
+
+/* Use slightly heaver weight for horizontal nav menu menu items */
+.menu-never-mobile .wp-block-navigation {
+	font-variation-settings: 'wght' 560;
+}
+
+/* Make the navigation menu overlay appear on the side instead of full-screen.
+  We can change this once we get to WordPress 7.1, which is scheduled to have support
+  for non-fullscreen navigation menu overlays. */
+.wp-block-navigation__responsive-container {
+	width: 360px;
+	box-sizing: border-box;
+	display: flex;
+	left: calc(100% - 360px);
+	opacity: 0;
+	transform: translateX(360px);
+}
+
+/* Animate the navigation menu overlay and backdrop */
+@media not (prefers-reduced-motion: reduce) {
+	.wp-block-navigation__responsive-container.is-menu-open {
+		animation: custom-overlay-menu-in 200ms forwards cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.wp-block-navigation__responsive-container[data-menu-closing='true'] {
+		animation: custom-overlay-menu-out 200ms forwards cubic-bezier(0.16, 1, 0.3, 1);
+	}
+}
+/* backdrop */
+nav:has(.wp-block-navigation__responsive-container.is-menu-open)::before,
+nav:has(.wp-block-navigation__responsive-container[data-menu-closing='true'])::before {
+	content: '';
+	background-color: rgba(0, 0, 0, 0.5);
+	position: fixed;
+	inset: 0;
+}
+nav:has(.wp-block-navigation__responsive-container.is-menu-open)::before {
+	animation: custom-overlay-backdrop-in 200ms forwards;
+}
+nav:has(.wp-block-navigation__responsive-container[data-menu-closing='true'])::before {
+	animation: custom-overlay-backdrop-out 200ms forwards;
+}
+@keyframes custom-overlay-menu-in {
+	from {
+		opacity: 0;
+		transform: translateX(360px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+@keyframes custom-overlay-menu-out {
+	from {
+		opacity: 1;
+		transform: translateX(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateX(360px);
+	}
+}
+@keyframes custom-overlay-backdrop-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes custom-overlay-backdrop-out {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+/* WordPress wraps inline svg blocks in a div with display: block, but this
+  can cause weird extra spacing. Using display: contents fixes it. */
+.safe-svg-cover:has(> .safe-svg-inside svg) {
+	display: contents;
+}
+
+/* Hide non-mobile navigation bar menus on narrower screens */
+@media (max-width: 900px) {
+	nav.menu-never-mobile,
+	.hide-lte-900 {
+		display: none !important;
+	}
+}
+
+/* Hide extra editor bar items */
+#wp-admin-bar-msreader-follow,
+#wp-admin-bar-comments,
+#wp-admin-bar-customize {
+	display: none !important;
+}
+
+/* Show a new tab indicator next to links with target="_blank" */
+a[target='_blank']:not(:has(.wp-block-navigation-item__label))::after {
+	content: ' ↗';
+	font-size: 0.75em;
+	vertical-align: super;
+}
+a.wp-block-button__link[target='_blank'] {
+	display: inline-block !important;
+	text-box-trim: trim-both;
+	text-box-edge: cap alphabetic;
+	position: relative;
+	padding-right: calc(12px + 14px + 8px); /* button padding + icon width + gap */
+}
+a.wp-block-button__link[target='_blank']::after {
+	content: '';
+	display: inline-flex;
+	position: absolute;
+	inset: 0 12px 0 auto; /* 12px = button padding */
+	width: 14px;
+	mask: url('data:image/svg+xml,%3Csvg%20aria-hidden%3D%22true%22%20class%3D%22svg%22%20fill%3D%22currentColor%22%20height%3D%22100%25%22%20viewBox%3D%220%200%2016%2016%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M1%201h8v1H2v12h12V7h1v8H1zm7.325%207.382L14%202.707V5h1V1h-4v1h2.293L7.618%207.675z%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E')
+		no-repeat center / contain;
+	background-color: currentColor;
+	pointer-events: none;
+}
+
+/* Show all midnight purple after the footer. This is only visible if there is still vertical space
+after the footer. This will not cause a scrollbar because it uses position: fixed; */
+footer::after {
+	content: '';
+	background: var(--wp--preset--color--custom-furman-midnight-purple);
+	position: fixed;
+	left: 0;
+	right: 0;
+	z-index: -1;
+	height: 100vh;
+	pointer-events: none;
+}
+
+/* Allow content to expand outside of covers. For example, if a child has a negative
+margin, it should be able to move below the cover. */
+.wp-block-cover {
+	overflow: visible;
+}
+
+/* Hide the core/raw block missing error in the footer (it contains our custom script tags) */
+footer .wp-block-missing {
+	display: none;
+}
+
+/* Hide missing blocks errors that are inside of patterns */
+div[aria-label='Block: Pattern']
+	div.has-warning.wp-block-missing[data-title='Unsupported'][data-type='core/missing']
+	> div:has(.block-editor-warning) {
+	display: none !important;
+}
+div[aria-label='Block: Pattern']
+	div.has-warning.wp-block-missing[data-title='Unsupported'][data-type='core/missing']:has(> div .block-editor-warning) {
+	display: contents;
+
+	/* remove translucent overlay that partially hides content */
+	&::after {
+		content: none !important;
+	}
+}
+
+/* For profile cards in query loops, hide the View Profile button unless the profile is available on furman.edu */
+.wp-block-post:where(.type-staff, .type-affiliate, .type-fellow):not(.person-flag-furman-edu) .wp-block-button {
+	display: none;
+}
+
+/* For page that do not have buttons BUT have links styled as buttons,
+we need to specify the base styles. They are omitted by WordPress if there
+are no button blocks on the page. Note that we use :root :where for the same level
+of specificity as WordPress's default block styles. */
+:root :where(.wp-block-button .wp-block-button__link) {
+	background-color: var(--wp--preset--color--custom-furman-purple);
+	border-top-left-radius: 0px;
+	border-top-right-radius: 0px;
+	border-bottom-left-radius: 0px;
+	border-bottom-right-radius: 0px;
+	font-size: clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.244), 1rem);
+	font-style: normal;
+	font-weight: 600;
+	line-height: 1.5;
+	--padding-block: 6px;
+	--padding-inline: 12px;
+	padding-top: var(--padding-block);
+	padding-right: var(--padding-inline);
+	padding-bottom: var(--padding-block);
+	padding-left: var(--padding-inline);
+	box-sizing: border-box;
+}
+:root :is(.wp-block-button.is-style-outline .wp-block-button__link) {
+	--box-shadow-color: var(--wp--preset--color--custom-shi-divider);
+	box-shadow: inset 0 0 0 1px var(--box-shadow-color);
+	background-color: transparent;
+}
+:root :is(.wp-block-button.is-style-outline .wp-block-button__link[style*='border']) {
+	/* If any border info has been set on the link, we need to hide our default box shadow. */
+	box-shadow: none;
+}
+
+/* Use Furman-style buttons hover and press effects. Note that we do
+not specify a background-color or text color on the default state
+since the button may have been configured to have a different default
+style via the blocks editor. */
+:root {
+	--wp--preset--color--custom-furman---on-yellow: #000000;
+	--wp--preset--color--custom-furman---on-blue: #000000;
+}
+:is(button[type='submit'], .wp-block-button .wp-block-button__link) {
+	transition:
+		background-color var(--shi-transition-120ms) ease,
+		box-shadow var(--shi-transition-120ms) ease;
+	min-height: 38px;
+	display: inline-flex;
+	align-items: center;
+	height: fit-content;
+	cursor: default !important;
+}
+:is(button[type='submit'], .wp-block-button .wp-block-button__link):hover {
+	box-shadow: none !important;
+}
+:is(.wp-block-button.is-style-outline .wp-block-button__link:not([style*='border'])) {
+	--box-shadow-color: var(--wp--preset--color--custom-shi-divider);
+	box-shadow: inset 0 0 0 1px var(--box-shadow-color) !important;
+	border-width: 0 !important; /* use box-shadow instead */
+	color: inherit !important;
+}
+:is(.wp-block-button.is-style-plain .wp-block-button__link) {
+	background-color: transparent !important;
+	border-width: 0 !important; /* use box-shadow instead */
+	color: inherit !important;
+}
+:is(button[type='submit'], .wp-block-button .wp-block-button__link:not(.no-hover-effect)):hover {
+	background-color: var(--wp--preset--color--custom-furman-yellow) !important;
+	--box-shadow-color: var(--wp--preset--color--custom-furman-yellow);
+	color: var(--wp--preset--color--custom-furman---on-yellow) !important;
+	text-decoration: none;
+}
+:is(button[type='submit'], .wp-block-button .wp-block-button__link:not(.no-active-effect)):active {
+	background-color: var(--wp--preset--color--custom-furman-blue) !important;
+	--box-shadow-color: var(--wp--preset--color--custom-furman-blue);
+	color: var(--wp--preset--color--custom-furman---on-blue) !important;
+}
+
+/* For plain buttons (no outline or background) we may want to offset by the
+amount of padding so the button does not look out of line with other elements.
+The buttons must specify the .collapse-margin-and-padding class for this to occur. */
+:is(.wp-block-button.collapse-margin-and-padding .wp-block-button__link) {
+	margin: calc(-1 * var(--padding-block)) calc(-1 * var(--padding-inline));
+}
+
+/* No backdrop filter on cover block components placeholder */
+.components-placeholder.has-illustration {
+	backdrop-filter: none;
+}
+
+/* Ensure that element that immediately follows a floated figure has no top margin
+so that it is aligned with the figure. We still need to keep the margin, so we put
+it after the figure instead. */
+figure.alignleft,
+figure.alignright + * {
+	margin-top: 0;
+}
+figure.alignleft,
+figure.alignright {
+	margin-block-end: 1.2rem;
+}
+
+/* Make aligned left and right figures use a proportion of the available
+width on wide screens. */
+.post-type-projects,
+.single-projects {
+	figure.alignright,
+	figure.alignleft {
+		width: 50%;
+	}
+	@media (min-width: 1480px) {
+		figure.alignright {
+			width: 75%;
+			margin-right: -37.5%;
+		}
+		figure.alignleft {
+			width: 75%;
+			margin-left: -37.5%;
+		}
+	}
+	@media (max-width: 800px) {
+		figure.alignright,
+		figure.alignleft {
+			width: calc(100% + var(--wp--style--root--padding-left, 0) + var(--wp--style--root--padding-right, 0));
+			margin-right: calc(-1 * var(--wp--style--root--padding-left, 0));
+		}
+		figure.alignright figcaption,
+		figure.alignleft figcaption {
+			margin-left: var(--wp--style--root--padding-left, 0);
+			margin-right: var(--wp--style--root--padding-right, 0);
+		}
+	}
+}
+
+/* The page type link appears at the top of pages that are article format (e.g. project briefs, serivces).
+This makes the link appear slightly closer to the title and without underline. */
+p:has(> .page-type-link) {
+	display: block;
+	margin-bottom: -0.9rem;
+}
+.page-type-link {
+	font-size: 1rem;
+	font-weight: 500;
+	text-decoration: none;
+}
+.page-type-link:hover,
+.page-type-link:active {
+	text-decoration: underline;
+}
+
+/* Forms */
+:root :is(.coblocks-form input) {
+	border-radius: 0px;
+	padding: 0.375rem 0.75rem;
+	min-height: 38px;
+	box-sizing: border-box;
+	border: none;
+	font-family: inherit;
+	font-size: var(--wp--preset--font-size--small);
+	box-shadow: inset 0 0 0 1px var(--wp--preset--color--custom-shi-divider);
+	transition:
+		background-color var(--shi-transition-120ms) ease,
+		box-shadow var(--shi-transition-120ms) ease;
+}
+:root :is(.coblocks-form input):hover:not(:focus-visible) {
+	box-shadow: inset 0 0 0 1.5px var(--wp--preset--color--custom-furman-adaptive-purple);
+	background-color: oklch(from var(--wp--preset--color--custom-furman-adaptive-purple) l c h / 0.06);
+}
+:root :is(.coblocks-form input):focus-visible {
+	outline: none;
+	box-shadow: inset 0 0 0 2px var(--wp--preset--color--custom-furman-adaptive-purple);
+}
+
+/* Show focus outlines only when focus is set by keyboard or other manual
+methods. Focus also triggers by mouse click, but we do not want to show
+:focus outlines in that case. We already show :active styles for mouse users. */
+.wp-site-blocks *:focus {
+	outline: none;
+}
+.wp-site-blocks *:focus-visible {
+	outline: 2px solid var(--wp--preset--color--custom-furman-adaptive-purple);
+}
+.wp-element-button:focus-visible,
+.wp-block-button__link:focus-visible,
+button:focus-visible {
+	outline-offset: 2px;
+}
+
+/* Customize links */
+:root :is(a:where(:not(.wp-element-button))) {
+	text-decoration-thickness: 1px !important;
+	text-underline-offset: 2px;
+	color: var(--wp--preset--color--custom-furman-adaptive-purple);
+	transition: all var(--shi-transition-120ms) ease;
+}
+:root
+	:is(a:where(:not(.wp-element-button)), .wp-block-navigation .wp-block-navigation-item__content.wp-block-navigation-item__content):hover {
+	text-decoration: underline;
+	text-decoration-thickness: 2px !important;
+	text-underline-offset: 2px;
+	--color: light-dark(
+		oklch(from var(--wp--preset--color--custom-furman-yellow) calc(l - 0.3) c h),
+		var(--wp--preset--color--custom-furman-yellow)
+	);
+	color: var(--color);
+	background-color: oklch(from var(--color) l c h / 0.12);
+}
+:root
+	:is(a:where(:not(.wp-element-button)), .wp-block-navigation .wp-block-navigation-item__content.wp-block-navigation-item__content):active {
+	--color: light-dark(
+		oklch(from var(--wp--preset--color--custom-furman-blue) calc(l - 0.3) c h),
+		var(--wp--preset--color--custom-furman-blue)
+	);
+}
+
+/* Customize the flex box for the 404 page such that the content
+area grows large enough to show the background-image */
+.stack404 {
+	display: flex;
+	flex-direction: column;
+	text-shadow: 0 0 32px black;
+}
+.stack404 main {
+	min-height: calc(100vh - 90px - var(--wp-admin--admin-bar--height, 0px)); /* 90px is the height of the two header bars */
+	flex-grow: 1;
+}
+.stack404 header,
+.stack404 footer,
+.stack404 header > *,
+.stack404 footer > * {
+	width: 100%;
+}
+
+/* Since the footer has a dark background, we set it to use dark theme colors */
+footer {
+	color-scheme: dark;
+}
+
+/* Animate accordians */
+.wp-block-accordion-panel {
+	height: auto;
+	overflow: hidden;
+	transition:
+		height var(--shi-transition-250ms) ease,
+		padding var(--shi-transition-250ms) ease;
+}
+.wp-block-accordion-panel[inert] {
+	height: 0;
+	padding-block: 0;
+	display: block;
+}
+
+/* Use chevron instead of plus for accordian icon */
+.wp-block-accordion-item > .wp-block-accordion-heading .wp-block-accordion-heading__toggle-icon {
+	font-size: 0;
+	transform: none !important;
+}
+.wp-block-accordion-item > .wp-block-accordion-heading .wp-block-accordion-heading__toggle-icon::after {
+	content: '▸';
+	transition: transform var(--shi-transition-250ms) ease;
+	position: relative;
+	right: 0.5rem;
+
+	font-size: 20px;
+	background-color: currentColor;
+	mask-image: url('data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M4.22%208.47a.75.75%200%200%201%201.06%200L12%2015.19l6.72-6.72a.75.75%200%201%201%201.06%201.06l-7.25%207.25a.75.75%200%200%201-1.06%200L4.22%209.53a.75.75%200%200%201%200-1.06Z%22%20fill%3D%22%23ffffff%22%2F%3E%3C%2Fsvg%3E');
+	mask-position: center;
+	mask-size: contain;
+	mask-repeat: no-repeat;
+}
+.wp-block-accordion-item.is-open > .wp-block-accordion-heading .wp-block-accordion-heading__toggle-icon::after {
+	transform: rotate(-180deg);
+}
+
+/* Hover/active effects for accordians */
+.wp-block-accordion-heading .wp-block-accordion-heading__toggle {
+	transition: background-color var(--shi-transition-120ms) ease;
+	padding-top: 0.5rem;
+	padding-right: 1rem;
+	padding-bottom: 0.5rem;
+	padding-left: 1rem;
+	height: 52px;
+	box-sizing: border-box;
+	cursor: default;
+}
+.wp-block-accordion-heading .wp-block-accordion-heading__toggle:hover span {
+	text-decoration: none;
+}
+.wp-block-accordion-heading .wp-block-accordion-heading__toggle:hover {
+	--light: oklch(from var(--wp--preset--color--custom-furman-adaptive-purple) calc(l - 0.3) c h / 0.04);
+	--dark: oklch(from var(--wp--preset--color--custom-furman-adaptive-purple) calc(l - 0.3) c h / 0.12);
+	background-color: light-dark(var(--light), var(--dark));
+}
+.wp-block-accordion-heading .wp-block-accordion-heading__toggle:active {
+	--light: oklch(from var(--wp--preset--color--custom-furman-adaptive-purple) calc(l - 0.3) c h / 0.08);
+	--dark: oklch(from var(--wp--preset--color--custom-furman-adaptive-purple) calc(l - 0.3) c h / 0.18);
+	background-color: light-dark(var(--light), var(--dark));
+}
+
+/* Remove the margin between the header and the next element */
+:root header + * {
+	margin-block-start: 0;
+}

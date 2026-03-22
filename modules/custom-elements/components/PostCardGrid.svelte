@@ -4,8 +4,8 @@
 			minColumnWidth: { reflect: true, type: 'String', attribute: 'min-column-width' },
 			maxColumnWidth: { reflect: true, type: 'String', attribute: 'max-column-width' },
 			gap: { reflect: true, type: 'String', attribute: 'gap' },
-			categoryIds: { reflect: true, type: 'Array', attribute: 'category-ids' },
-			tagIds: { reflect: true, type: 'Array', attribute: 'tag-ids' },
+			type: { reflect: true, type: 'String', attribute: 'type' },
+			taxonomies: { reflect: true, type: 'Object', attribute: 'taxonomies' },
 			design: { reflect: true, type: 'String', attribute: 'design' },
 			page: { reflect: true, type: 'Number', attribute: 'page' },
 			pageSize: { reflect: true, type: 'Number', attribute: 'page-size' },
@@ -14,8 +14,8 @@
 />
 
 <script lang="ts" module>
-	import type { Posts } from '../../worker/api';
-	import { fetchWithHydration } from '../utils';
+	import type { ProjectBriefs } from '../../worker/api';
+	import { fetchWithHydration, with_previous } from '../utils';
 	import { url } from '../utils/navigation';
 	import PostCard, { type PostCardProps } from './PostCard.svelte';
 	import ProgressRing from './ProgressRing.svelte';
@@ -24,8 +24,8 @@
 		minColumnWidth?: string;
 		maxColumnWidth?: string;
 		gap?: string;
-		categoryIds?: number[];
-		tagIds?: number[];
+		type: 'project-briefs';
+		taxonomies?: Record<string, number[]>;
 		page?: number;
 		pageSize?: number;
 		/** The design of the post cards. See PostCard for more information. */
@@ -38,23 +38,51 @@
 		minColumnWidth = '250px',
 		maxColumnWidth = '1fr',
 		gap = '1rem',
-		categoryIds = [],
-		tagIds = [],
+		type = 'project-briefs',
+		taxonomies = {},
 		page = 1,
 		pageSize = 10,
 		design,
 	}: PostCardGridProps = $props();
 
 	const isBlog = $derived($url.origin.includes('https://blogs.furman' + '.edu'));
-	const prefix = $derived(isBlog ? '/shi-applied-research' : '');
+	const prefix = $derived(isBlog ? `/${$url.pathname.split('/')[0] || ''}` : '');
+
+	// memoize taxonomies to avoid unnecessary fetches when the taxonomies object reference changes but the contents are the same
+	const stableTaxonomies = $derived.by(
+		with_previous(
+			(prev) => {
+				const prevKeys = Object.keys(prev);
+				const newKeys = Object.keys(taxonomies);
+				if (
+					prevKeys.length === newKeys.length &&
+					prevKeys.every((key) => newKeys.includes(key)) &&
+					prevKeys.every((key) => {
+						const prevIds = prev[key];
+						const newIds = taxonomies[key];
+						return (
+							Array.isArray(prevIds) &&
+							Array.isArray(newIds) &&
+							prevIds.length === newIds.length &&
+							prevIds.every((id) => newIds.includes(id))
+						);
+					})
+				) {
+					return prev;
+				}
+				return taxonomies;
+			},
+			// svelte-ignore state_referenced_locally
+			taxonomies,
+		),
+	);
 
 	const queryUrl = $derived.by(() => {
-		const queryUrl = new URL(isBlog ? 'https://shi.institute/.api/posts' : '/.api/posts', $url.origin);
-		if (categoryIds.length > 0) {
-			queryUrl.searchParams.set('categories', categoryIds.join(','));
-		}
-		if (tagIds.length > 0) {
-			queryUrl.searchParams.set('tags', tagIds.join(','));
+		const queryUrl = new URL(isBlog ? `https://shi.institute/.api/${type}` : `/.api/${type}`, $url.origin);
+		for (const [taxonomy, ids] of Object.entries(stableTaxonomies)) {
+			if (ids.length > 0) {
+				queryUrl.searchParams.set(`taxonomy__${taxonomy}`, ids.join(','));
+			}
 		}
 		if (page !== undefined) {
 			queryUrl.searchParams.set('page', page.toString());
@@ -62,20 +90,19 @@
 		if (pageSize !== undefined) {
 			queryUrl.searchParams.set('per_page', pageSize.toString());
 		}
+		console.log('Query URL for PostCardGrid:', queryUrl.href, stableTaxonomies);
 		return queryUrl;
 	});
 
-	const fetcher = await fetchWithHydration<Posts>('post-data', () => queryUrl);
+	const fetcher = await fetchWithHydration<ProjectBriefs>('project-brief-data', () => queryUrl);
 </script>
 
 <div class="grid" style:--min-column-width={minColumnWidth} style:--max-column-width={maxColumnWidth} style:--gap={gap}>
 	{#if fetcher.data}
-		{#if fetcher.loading}
-			<div class="loading loading-overlay">
-				<ProgressRing />
-				Please wait…
-			</div>
-		{/if}
+		<div class="loading loading-overlay" class:visible={fetcher.loading}>
+			<ProgressRing />
+			Please wait…
+		</div>
 		{#if fetcher.data.length === 0}
 			<p>No posts found.</p>
 		{:else}
@@ -154,6 +181,14 @@
 		backdrop-filter: blur(4px);
 		padding: 1rem 2rem;
 		border-radius: 0px;
+		z-index: 1;
+		opacity: 0;
+		visibility: hidden;
+		transition: all var(--shi-transition-120ms) ease-out;
+	}
+	.loading-overlay.visible {
+		opacity: 1;
+		visibility: visible;
 	}
 
 	div[data-post-id] {

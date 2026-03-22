@@ -1,24 +1,26 @@
 import { parseHTML } from 'linkedom';
+import z from 'zod';
 import customElementsCss from '../custom-elements/components/custom-elements.css';
 import type { NavigationListItem } from '../custom-elements/components/navigation-bar-parts/NavigationList.svelte';
 import { render } from '../custom-elements/server.js';
 
-type NavigationTier = 'secondaryLeft' | 'secondaryRight' | 'desktopNavbar' | 'desktopSideMenu' | 'mobileSideMenu';
+type NavigationTier = 'secondaryLeft' | 'secondaryRight' | 'desktopNavbar' | 'sideMenu' | 'footerMenu';
 
-const BLOG_HOME = 'https://blogs.furman.edu/shi-applied-research';
+const BLOG = 'https://blogs.furman.edu/jbtest';
+const BLOG_API_NAVIGATION = BLOG + '/wp-json/wp/v2/navigation';
 
 /**
- * Gets the navigation menu items by scraping the Shi Applied Research WordPress site.
+ * Gets the navigation menu items by querying the WordPress REST API.
  *
  * The menu items are cached for 1 minute to reduce the number of requests to the WordPress site.
  */
 async function getNavigationMenuItems(
-	ctx: ExecutionContext,
-): Promise<Record<NavigationTier, ReturnType<typeof interpretMenuItems>> | null> {
-	const url = new URL(`${BLOG_HOME}`);
+	ctx: ExecutionContext<{ adminBarHref?: string }>,
+): Promise<Record<NavigationTier, z.infer<typeof navigationMenuSchema>> | null> {
+	const url = new URL(`${BLOG_API_NAVIGATION}`);
 	const cacheKey = new Request(url);
 
-	// if the menu items are in the cache, use them instead of scraping the WordPress site again
+	// if the menu items are in the cache, use them instead of querying the WordPress REST API again
 	const cache = await caches.open('navigation-cache');
 	const cached = await cache.match(cacheKey);
 	if (cached) {
@@ -30,10 +32,9 @@ async function getNavigationMenuItems(
 	const timeoutId = setTimeout(() => controller.abort(), 5000);
 
 	try {
-		// grab the home page HTML
-		const response = await fetch(cacheKey.url, {
+		const navigationMenusResponse = await fetch(cacheKey.url, {
 			headers: {
-				Accept: 'text/html',
+				Accept: 'application/json',
 				'User-Agent': 'Cloudflare-Worker/1.0',
 				Host: 'blogs.furman.edu',
 			},
@@ -41,31 +42,20 @@ async function getNavigationMenuItems(
 		});
 		clearTimeout(timeoutId);
 
-		if (!response.ok) {
-			console.error(`Failed to fetch menu items: ${response.status} ${response.statusText}`);
+		if (!navigationMenusResponse.ok) {
+			console.error(`Failed to fetch menu items: ${navigationMenusResponse.status} ${navigationMenusResponse.statusText}`);
 			return null;
 		}
 
-		// parse the HTML and extract the menu items
-		const homeHtml = await response.text();
-		const { document } = parseHTML(homeHtml);
-		const parse = interpretMenuItems.bind(null, document);
-
-		const secondaryLeftItems = parse('#menu-secondary-left li[itemtype="https://www.schema.org/SiteNavigationElement"] a');
-		const secondaryRightItems = parse('#menu-secondary-right li[itemtype="https://www.schema.org/SiteNavigationElement"] a');
-		const desktopNavbarItems = parse('#menu-main-desktop li[itemtype="https://www.schema.org/SiteNavigationElement"] a');
-		const desktopSideMenuItems = parse(
-			'#modal-slide-in-menu nav[aria-label="Expanded"] li[itemtype="https://www.schema.org/SiteNavigationElement"] a',
-		);
-		const mobileSideMenuItems = parse(
-			'#modal-slide-in-menu nav[aria-label="Mobile"] li[itemtype="https://www.schema.org/SiteNavigationElement"] a',
-		);
+		// parse the JSON response and extract the menu items
+		const navigationData = await navigationMenusResponse.json().then((data) => navigationMenuSchema.array().parse(data));
+		const get = (id: number) => navigationData.find((menu) => menu.id === id) ?? ([] as unknown as z.infer<typeof navigationMenuSchema>);
 		const menuItems = {
-			secondaryLeft: secondaryLeftItems,
-			secondaryRight: secondaryRightItems,
-			desktopNavbar: desktopNavbarItems,
-			desktopSideMenu: desktopSideMenuItems,
-			mobileSideMenu: mobileSideMenuItems,
+			secondaryLeft: get(371),
+			secondaryRight: get(375),
+			desktopNavbar: get(23),
+			sideMenu: get(78),
+			footerMenu: get(847),
 		};
 
 		// create a new response with the cache headers
@@ -90,24 +80,14 @@ async function getNavigationMenuItems(
 	}
 }
 
-/**
- * Interprets the menu items from the given selector and returns an array of objects containing the title, link, and whether the link should open in a new tab.
- * @param selector The CSS selector to use to find the menu items in the DOM. It should resolve to a list of anchor elements.
- */
-function interpretMenuItems(document: Document, selector: string) {
-	const elements = Array.from(document.querySelectorAll(selector));
-	return elements.map((element, index) => {
-		const title = element.textContent || undefined;
-		const url = element.getAttribute('href')?.replace(BLOG_HOME, '') ?? undefined;
-		const shouldOpenInNewTab = element.getAttribute('target') === '_blank' || title?.endsWith(' ↗');
-		return { title, url, shouldOpenInNewTab, order: index };
-	});
-}
+function toNavigationListItem(item: z.infer<typeof navigationMenuSchema>['items'][number]): NavigationListItem {
+	if (item.tagName === 'spacer') {
+		return { type: 'spacer', size: item.attributes.size };
+	}
 
-export function toLabelHrefPair(element: ReturnType<typeof interpretMenuItems>[number]): NavigationListItem {
 	return {
-		label: element.title || '',
-		href: element.url,
+		label: item.text,
+		href: item.attributes.href,
 	};
 }
 
@@ -116,7 +96,7 @@ export function toLabelHrefPair(element: ReturnType<typeof interpretMenuItems>[n
  * the menu HTML is available immedeiately on page load. The menu is upgraded to a custom element on the client side
  * once the custom elements script is loaded.
  */
-export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl: URL) {
+export async function getInjectableNavigation(ctx: ExecutionContext<{ adminBarHref?: string }>, currentUrl: URL) {
 	const menuData = await getNavigationMenuData(ctx);
 
 	function transformHref(href: string) {
@@ -138,7 +118,14 @@ export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl:
 		{ url: currentUrl },
 	);
 
+	const adminBarHtml = render(
+		'AdminBar',
+		{ props: { adminHref: ctx.props.adminBarHref || 'https://blogs.furman.edu/jbtest/wp-admin' } },
+		{ url: currentUrl },
+	);
+
 	return `
+		${await adminBarHtml}
 		${await secondaryMenuBarHtml}
 		${await primaryMenuBarHtml}
 		<script src="/custom-elements.js" type="module"></script>
@@ -148,12 +135,33 @@ export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl:
 				navigation: auto;
 			}
 		</style>
+		<style>
+			/* hide the old menus */
+			header > div:nth-child(1),
+			header > div:nth-child(2) {
+				display: none;
+			}
+
+			/* stop WordPress from adding margin before our menu items */
+			header > * {
+				margin: 0 !important;
+			}
+		</style>
 		<script type="module">
 			// on Meta + Shift + E, launch the WordPress editor for current page or post if it exists
 			window.addEventListener('keydown', async (event) => {
 				if (event.metaKey && event.shiftKey && event.key.toLowerCase() === 'e') {
 					event.preventDefault();
 					window.open(\`/.api/editor\${window.location.pathname}\`, '_blank', 'width=1600,height=1000');
+				}
+			});
+			// on Meta + Shift + A, show the admin bar if it's hidden, or hide it if it's visible
+			window.addEventListener('keydown', async (event) => {
+				if (event.metaKey && event.shiftKey && event.key.toLowerCase() === 'a') {
+					event.preventDefault();
+					const isVisible = localStorage.getItem('adminBarVisible') === 'true';
+					localStorage.setItem('adminBarVisible', String(!isVisible));
+					window.dispatchEvent(new CustomEvent('adminBarVisibleChanged', { detail: !isVisible }));
 				}
 			});
 			console.log(\`
@@ -202,7 +210,7 @@ export async function getInjectableNavigation(ctx: ExecutionContext, currentUrl:
 	`;
 }
 
-export async function getNavigationMenuData(ctx: ExecutionContext) {
+export async function getNavigationMenuData(ctx: ExecutionContext<{ adminBarHref?: string }>) {
 	const menuItems = await getNavigationMenuItems(ctx);
 	if (!menuItems) {
 		return {
@@ -213,10 +221,10 @@ export async function getNavigationMenuData(ctx: ExecutionContext) {
 		};
 	}
 
-	const { secondaryLeft, secondaryRight, desktopNavbar: primary, mobileSideMenu: menu } = menuItems;
+	const { secondaryLeft, secondaryRight, desktopNavbar: primary, sideMenu: menu } = menuItems;
 
 	return {
-		primary: primary.map(toLabelHrefPair).flatMap((item, index, array) => {
+		primary: primary.items.map(toNavigationListItem).flatMap((item, index, array) => {
 			// add a divider before services and after projects
 			if (index === array.length - 3 || index === array.length - 1) {
 				return [item, { type: 'divider' } as NavigationListItem];
@@ -224,8 +232,58 @@ export async function getNavigationMenuData(ctx: ExecutionContext) {
 
 			return item;
 		}),
-		secondaryLeft: secondaryLeft.map(toLabelHrefPair),
-		secondaryRight: secondaryRight.map(toLabelHrefPair),
-		menu: menu.map(toLabelHrefPair),
+		secondaryLeft: secondaryLeft.items.map(toNavigationListItem),
+		secondaryRight: secondaryRight.items.map(toNavigationListItem),
+		menu: menu.items.map(toNavigationListItem),
 	};
 }
+
+const navigationMenuSchema = z
+	.object({
+		id: z.number(),
+		slug: z.string(),
+		title: z.object({ rendered: z.string() }),
+		content: z.object({ rendered: z.string() }),
+	})
+	.transform((item) => {
+		const { id, slug, title, content } = item;
+
+		// parse the rendered content to extract the menu items and their URLs
+		const { document, HTMLAnchorElement, HTMLElement } = parseHTML(content.rendered);
+		const listItems = Array.from(document.querySelectorAll(':where(a, div)'));
+
+		const menuItems = listItems
+			.map((elem) => {
+				if (elem instanceof HTMLAnchorElement) {
+					const text = elem.textContent || '';
+
+					let href = elem.getAttribute('href') || '';
+					if (href.startsWith(BLOG)) {
+						href = href.substring(BLOG.length);
+						if (!href.startsWith('/')) {
+							href = '/' + href;
+						}
+					}
+
+					const shouldOpenInNewTab = elem.getAttribute('target') === '_blank' || text.endsWith(' ↗');
+					const target = shouldOpenInNewTab ? '_blank' : '_self';
+
+					const rel = shouldOpenInNewTab ? 'noopener noreferrer' : elem.getAttribute('rel') || undefined;
+
+					return { tagName: 'a' as const, text, attributes: { href, target, rel } };
+				}
+
+				if (elem instanceof HTMLElement && elem.classList.contains('wp-block-spacer')) {
+					const spacerSize = elem.style.flexBasis || elem.style.height || elem.style.width || '1rem';
+					return { tagName: 'spacer' as const, attributes: { size: spacerSize } };
+				}
+			})
+			.filter((x) => !!x);
+
+		return {
+			id,
+			slug,
+			title: title.rendered,
+			items: menuItems,
+		};
+	});

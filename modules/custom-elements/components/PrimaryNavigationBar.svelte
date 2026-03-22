@@ -48,8 +48,9 @@
 
 <style>
 	:host {
+		--wp-admin--admin-bar--position-offset: var(--wp-admin--admin-bar--height, 0px);
 		position: sticky;
-		top: 0;
+		top: calc(0px + var(--wp-admin--admin-bar--position-offset, 0px));
 		background: var(--shi-navbar-background-color);
 		box-shadow: inset 0 -1px 0 0 var(--shi-divider-color);
 		width: 100%;
@@ -60,6 +61,7 @@
 		justify-content: flex-end;
 		padding: 0 0 0 12px;
 		font-size: 16px;
+		box-sizing: border-box;
 	}
 
 	.logo-container {

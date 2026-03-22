@@ -11,7 +11,7 @@
 />
 
 <script lang="ts" module>
-	import type { PostMediaDetails } from '../../worker/api';
+	import type { MediaDetails } from '../../worker/api';
 	import { sanitizeInlineHtml } from '../utils';
 
 	export interface PostCardProps {
@@ -22,7 +22,7 @@
 			alt_text: string;
 			source_url: string;
 			credit?: string;
-			media_details: PostMediaDetails;
+			media_details: MediaDetails;
 		};
 		/**
 		 * The design of the post card.
@@ -68,7 +68,15 @@
 	</h1>
 
 	{#if excerpt}
-		<p>{@html sanitizeInlineHtml(excerpt.replaceAll('…', '').replaceAll('&#8230;', ''))}</p>
+		<p>{@html sanitizeInlineHtml(excerpt)}</p>
+	{/if}
+
+	{#if href}
+		<div class="wp-block-buttons">
+			<span class="wp-block-button" class:is-style-outline={design === 'neutral'}>
+				<a {href} class="wp-block-button__link" aria-label="Continue reading {title}">Continue Reading</a>
+			</span>
+		</div>
 	{/if}
 </article>
 
@@ -186,11 +194,7 @@
 		}
 	}
 
-	article :global(span.sr-only) {
-		display: none;
-	}
-
-	article :global(.btn) {
+	.wp-block-button .wp-block-button__link {
 		padding: 0.375rem 0.75rem;
 		font-size: 1em;
 		line-height: 1.5;
@@ -209,26 +213,27 @@
 		--box-shadow-color: var(--shi-color-purple);
 		box-shadow: inset 0 0 0 1px var(--box-shadow-color);
 		color: var(--shi-color--on-purple);
+		cursor: default;
 	}
-	article :global(.btn:hover) {
+	.wp-block-button .wp-block-button__link:hover {
 		background-color: var(--shi-color-yellow);
 		--box-shadow-color: var(--shi-color-yellow);
 		color: var(--shi-color--on-yellow);
 		text-decoration: none;
 	}
-	article :global(.btn:active) {
+	.wp-block-button .wp-block-button__link:active {
 		background-color: var(--shi-color-blue);
 		--box-shadow-color: var(--shi-color-blue);
 		color: var(--shi-color--on-blue);
 	}
 
-	article.design-neutral :global(.btn:not(:hover):not(:active)) {
+	.wp-block-button.is-style-outline .wp-block-button__link:not(:hover):not(:active) {
 		background-color: var(--shi-surface-background-color);
 		--box-shadow-color: var(--shi-divider-color);
 		color: var(--shi-surface-color);
 	}
 
-	article :global(span.cpschool-read-more-link-holder) {
+	.wp-block-buttons {
 		display: block;
 		margin-top: 12px;
 	}

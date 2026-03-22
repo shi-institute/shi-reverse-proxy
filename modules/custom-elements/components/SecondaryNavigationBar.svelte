@@ -30,6 +30,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0 12px;
+		box-sizing: border-box;
 	}
 	@media (width < 923px) {
 		:host {

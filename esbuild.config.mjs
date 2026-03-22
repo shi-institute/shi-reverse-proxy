@@ -23,6 +23,7 @@ const commonEsbuildOptions = {
 	},
 	loader: {
 		'.css': 'text',
+		'.html': 'text',
 	},
 };
 

@@ -36,7 +36,7 @@
 		transform: rotate(-90deg);
 		transform-origin: 50% 50%;
 		transition: all var(--shi-transition-250ms) linear;
-		animation: progress-ring-animation var(--shi-transition-200ms) linear infinite;
+		animation: progress-ring-animation var(--shi-transition-2s) linear infinite;
 	}
 
 	@keyframes progress-ring-animation {

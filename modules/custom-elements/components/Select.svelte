@@ -14,6 +14,8 @@
 />
 
 <script lang="ts" module>
+	import { untrack } from 'svelte';
+
 	interface ChangeData {
 		value: string | null;
 		values: string[];
@@ -209,7 +211,7 @@
 	$effect(() => {
 		selectedOptions; // track selectedOptions changes
 		if (dispatchEffectHasInitialRun) {
-			dispatchChangeEvent();
+			untrack(() => dispatchChangeEvent());
 		} else {
 			dispatchEffectHasInitialRun = true;
 		}
@@ -580,6 +582,7 @@
 		height: 38px;
 		box-sizing: border-box;
 		margin: 8px 8px 0;
+		font-family: inherit;
 	}
 	input:focus {
 		outline: none;

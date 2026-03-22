@@ -10,7 +10,7 @@
 		onItemClick?: () => void;
 	}
 
-	export type NavigationListItem = NavigationListLinkItem | NavigationListDividerItem;
+	export type NavigationListItem = NavigationListLinkItem | NavigationListDividerItem | NavigationListSpacerItem;
 
 	export interface NavigationListLinkItem {
 		type?: 'link';
@@ -21,10 +21,15 @@
 	export type NavigationListDividerItem = {
 		type: 'divider';
 	};
+
+	export type NavigationListSpacerItem = {
+		type: 'spacer';
+		size: string;
+	};
 </script>
 
 <script lang="ts">
-	let { items, transformHref = (href) => href, direction = 'horizontal', onItemClick }: NavigationListProps = $props();
+	let { items, transformHref: _transformHref = (href) => href, direction = 'horizontal', onItemClick }: NavigationListProps = $props();
 
 	function doUrlsMatch(toCheck: string, reference: string) {
 		try {
@@ -35,12 +40,30 @@
 			return false;
 		}
 	}
+
+	const isBlog = $derived($url.origin.includes('https://blogs.furman' + '.edu'));
+	const prefix = $derived(isBlog ? `/${$url.pathname.split('/')[1] || ''}` : '');
+
+	function transformHref(href: string) {
+		const transformed = _transformHref(href);
+
+		// If the transformed href is a relative path and the current origin is the blogs subdomain,
+		// we need to prepend the first segment of the current path to the href.
+		// This allows links to work correctly when the site is accessed from the subpath
+		// instead of the root domain.
+		if (transformed.startsWith('/') && prefix) {
+			return prefix + transformed;
+		}
+		return transformed;
+	}
 </script>
 
 <ul class:vertical={direction === 'vertical'} class="nav-list">
 	{#each items as item}
 		{#if item.type === 'divider'}
 			<hr />
+		{:else if item.type === 'spacer'}
+			<div style={direction === 'vertical' ? `height: ${item.size};` : `width: ${item.size};`}></div>
 		{:else}
 			<li>
 				{#if item.href}

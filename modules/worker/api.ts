@@ -1,7 +1,8 @@
 import z from 'zod';
 
-const BLOG = 'https://blogs.furman.edu/shi-applied-research';
+const BLOG = 'https://blogs.furman.edu/jbtest';
 const FUWEB = 'https://www.furman.edu/shi-institute';
+const FUWEBROOT = 'https://www.furman.edu';
 
 export default {
 	async fetch(request: Request<unknown, IncomingRequestCfProperties<unknown>>, env: Env, ctx: ExecutionContext): Promise<Response | void> {
@@ -12,7 +13,7 @@ export default {
 
 		if (url.pathname.startsWith('/.api/get-id/')) {
 			const path = url.pathname.replace('/.api/get-id', '');
-			const id = await getIdFromPathname(path);
+			const [, id] = await getIdFromPathname(path);
 
 			if (id) {
 				return new Response(JSON.stringify({ id }), {
@@ -31,9 +32,9 @@ export default {
 
 		if (url.pathname.startsWith('/.api/editor/')) {
 			const path = url.pathname.replace('/.api/editor', '');
-			const pageOrPostId = await getIdFromPathname(path);
+			const [type, id] = await getIdFromPathname(path);
 
-			if (!pageOrPostId) {
+			if (!id) {
 				return new Response(`No post or page found for path: ${path}`, {
 					status: 404,
 					statusText: 'Not Found',
@@ -42,62 +43,170 @@ export default {
 
 			const isFurmanEdu = path.startsWith('/shi-institute');
 			const editUrl = isFurmanEdu
-				? `https://www.furman.edu/shi-institute/wp-admin/post.php?post=${pageOrPostId}&action=edit`
-				: `https://blogs.furman.edu/shi-applied-research/wp-admin/post.php?post=${pageOrPostId}&action=edit`;
+				? `${FUWEB}/wp-admin/post.php?post=${id}&action=edit`
+				: type === 'pages'
+					? `${BLOG}/wp-admin/site-editor.php?p=page&postId=${id}`
+					: `${BLOG}/wp-admin/post.php?post=${id}&action=edit`;
 
 			return Response.redirect(editUrl, 307);
 		}
 
-		if (url.pathname === '/.api/posts') {
-			const tagIds = url.searchParams.get('tags');
-			const tagIdsArray = tagIds
-				? tagIds
-						.split(',')
-						.map((id) => Number(id.trim()))
-						.filter((id) => Number.isInteger(id))
-				: [];
+		if (url.pathname === '/.api/canonical-profile') {
+			let type = url.searchParams.get('type');
+			const slug = url.searchParams.get('slug');
 
-			const categoryIds = url.searchParams.get('categories');
-			const categoryIdsArray = categoryIds
-				? categoryIds
-						.split(',')
-						.map((id) => Number(id.trim()))
-						.filter((id) => Number.isInteger(id))
-				: [];
+			if (!type) {
+				return new Response(`Missing 'type' query parameter`, {
+					headers: { 'Access-Control-Allow-Origin': '*' },
+					status: 400,
+					statusText: 'Bad Request',
+				});
+			}
 
-			const pageSizeParam = url.searchParams.get('per_page');
-			const pageSize =
-				pageSizeParam && Number.isInteger(Number(pageSizeParam)) && Number(pageSizeParam) > 0 ? Number(pageSizeParam) : undefined;
+			if (!slug) {
+				return new Response(`Missing 'slug' query parameter`, {
+					headers: { 'Access-Control-Allow-Origin': '*' },
+					status: 400,
+					statusText: 'Bad Request',
+				});
+			}
 
-			const pageParam = url.searchParams.get('page');
-			const page = pageParam && Number.isInteger(Number(pageParam)) && Number(pageParam) > 0 ? Number(pageParam) : undefined;
+			const allowedTypes = ['staff', 'affiliate', 'fellow', 'affiliates', 'fellows'];
+			if (!allowedTypes.includes(type)) {
+				return new Response(`Invalid 'type' query parameter. Allowed values are: ${allowedTypes.join(', ')}`, {
+					headers: { 'Access-Control-Allow-Origin': '*' },
+					status: 400,
+					statusText: 'Bad Request',
+				});
+			}
+			if (type === 'affiliates' || type === 'fellows') {
+				type = type.slice(0, -1); // convert to singular for API endpoint
+			}
 
-			const posts = await getPosts(categoryIdsArray, tagIdsArray, page, pageSize);
-			return new Response(JSON.stringify(posts).replaceAll('https://blogs.furman.edu/shi-applied-research', ''), {
-				headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-				status: 200,
-				statusText: 'OK',
+			// check furman.edu for a matching profile
+			const [, furmanProfileId] = await getPageOrPostId(FUWEBROOT, slug, ['people']);
+			if (furmanProfileId) {
+				return new Response(JSON.stringify({ id: furmanProfileId, source: 'furman.edu', href: `${FUWEBROOT}/people/${slug}` }), {
+					headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+					status: 200,
+					statusText: 'OK',
+				});
+			}
+
+			// otherwise, check the blog for a matching profile
+			const [, blogProfileId] = await getPageOrPostId(BLOG, slug, [type]);
+			if (blogProfileId) {
+				return new Response(
+					JSON.stringify({ id: blogProfileId, source: 'blogs.furman.edu', href: `${url.origin}/people/${type}/${slug}` }),
+					{
+						headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+						status: 200,
+						statusText: 'OK',
+					},
+				);
+			}
+
+			return new Response(`No profile found for type '${type}' with slug '${slug}'`, {
+				headers: { 'Access-Control-Allow-Origin': '*' },
+				status: 404,
+				statusText: 'Not Found',
 			});
+		}
+
+		// TODO: generalize this to work with any post type
+		if (url.pathname === '/.api/projects') {
+			return createStaleWhileRevalidateResponse(async () => {
+				const taxonomyArrays: Record<string, number[]> = {};
+				for (const [key, value] of url.searchParams.entries()) {
+					if (key.startsWith('taxonomy__')) {
+						const taxonomy = key.replace('taxonomy__', '');
+						const idsArray = value
+							.split(',')
+							.map((id) => Number(id.trim()))
+							.filter((id) => Number.isInteger(id));
+						if (idsArray.length > 0) {
+							taxonomyArrays[taxonomy] = idsArray;
+						}
+					}
+				}
+
+				const pageSizeParam = url.searchParams.get('per_page');
+				const pageSize =
+					pageSizeParam && Number.isInteger(Number(pageSizeParam)) && Number(pageSizeParam) > 0 ? Number(pageSizeParam) : undefined;
+
+				const pageParam = url.searchParams.get('page');
+				const page = pageParam && Number.isInteger(Number(pageParam)) && Number(pageParam) > 0 ? Number(pageParam) : undefined;
+
+				const posts = await getProjectBriefs(page, pageSize, taxonomyArrays);
+
+				return new Response(JSON.stringify(posts).replaceAll(BLOG, ''), {
+					headers: {
+						'Content-Type': 'application/json',
+						'Access-Control-Allow-Origin': '*',
+						'Cache-Control': 'public, max-age=60', // cache for 1 minute
+					},
+					status: 200,
+					statusText: 'OK',
+				});
+			});
+		}
+
+		/**
+		 * Converts a response into a stale-while-revalidate capable response.
+		 *
+		 * The response will be stored into a cache with the current URL as the cache key.
+		 *
+		 * If a cached response already exists for the URL, it will be returned immediately
+		 * and the new response will be generated in the background and replace the cached
+		 * response once ready.
+		 *
+		 * If no cached response exists, the new response will be generated and returned as normal,
+		 * and then it will be cached for future requests.
+		 *
+		 * To specify the cache lifetime, set the `Cache-Control` header on the response returned by
+		 * `createResponse`. The cache will respect the `max-age` directive and automatically remove stale entries.
+		 *
+		 * @param createResponse
+		 * A callback function that is responsible for creating and returning a new Response object.
+		 * This function will be called on every request.
+		 */
+		async function createStaleWhileRevalidateResponse(createResponse: () => Promise<Response>) {
+			const cache = await caches.open('.api-projects-cache');
+
+			const cacheKey = new Request(url);
+			const cached = await cache.match(cacheKey);
+
+			if (cached) {
+				ctx.waitUntil(
+					(async () => {
+						const freshResponse = await createResponse();
+						await cache.put(cacheKey, freshResponse);
+					})(),
+				);
+				return cached;
+			}
+
+			const firstResponse = await createResponse();
+			ctx.waitUntil(cache.put(cacheKey, firstResponse.clone()));
+			return firstResponse;
 		}
 	},
 };
 
 /**
- * Gets posts from the WordPress REST API with optional filtering by category and tag IDs.
+ * Gets project briefs from the WordPress REST API with optional filtering by taxonomies.
  * Also fetches media details for posts with a featured image.
  */
-export async function getPosts(
-	categoryIds: number[] = [],
-	tagIds: number[] = [],
+async function getProjectBriefs(
 	page: number = 1,
 	pageSize: number = 10,
-): Promise<(z.infer<typeof wordpressPostSchema> & { media?: z.infer<typeof wordpressMediaSchema> | null })[]> {
-	const postsQueryUrl = new URL(`${BLOG}/wp-json/wp/v2/posts`);
-	if (tagIds.length > 0) {
-		postsQueryUrl.searchParams.set('tags', tagIds.join(','));
-	}
-	if (categoryIds.length > 0) {
-		postsQueryUrl.searchParams.set('categories', categoryIds.join(','));
+	taxonomies: Record<string, number[]> = {},
+): Promise<(z.infer<typeof wordpressProjectSchema> & { media?: z.infer<typeof wordpressMediaSchema> | null })[]> {
+	const postsQueryUrl = new URL(`${BLOG}/wp-json/wp/v2/projects`);
+	for (const [taxonomy, ids] of Object.entries(taxonomies)) {
+		if (ids.length > 0) {
+			postsQueryUrl.searchParams.set(`${taxonomy}`, ids.join(','));
+		}
 	}
 	if (page > 0) {
 		postsQueryUrl.searchParams.set('page', page.toString());
@@ -110,10 +219,10 @@ export async function getPosts(
 		headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
 	})
 		.then((res) => res.json())
-		.then((data) => wordpressPostSchema.array().parse(data))
+		.then((data) => wordpressProjectSchema.array().parse(data))
 		.catch((err) => {
 			console.error('Error fetching posts:', err);
-			return [] as z.infer<typeof wordpressPostSchema>[];
+			return [] as z.infer<typeof wordpressProjectSchema>[];
 		});
 
 	const postsWithMedia = await Promise.all(
@@ -137,9 +246,9 @@ export async function getPosts(
 	return postsWithMedia;
 }
 
-export type PostMediaDetails = z.infer<typeof wordpressMediaSchema>['media_details'];
-export type Post = Awaited<ReturnType<typeof getPosts>>[number];
-export type Posts = Post[];
+export type MediaDetails = z.infer<typeof wordpressMediaSchema>['media_details'];
+type ProjectBrief = Awaited<ReturnType<typeof getProjectBriefs>>[number];
+export type ProjectBriefs = ProjectBrief[];
 
 /**
  * Queries the WordPress REST API for blugs.furman.edu/shi-applied-research and
@@ -151,19 +260,21 @@ export type Posts = Post[];
  */
 export async function getIdFromPathname(pathname: string) {
 	// try the blog API first
-	let id = await getPageOrPostId(BLOG, pathname);
+	let [type, id] = await getPageOrPostId(BLOG, pathname);
 	if (id) {
-		return id;
+		return [type, id] as const;
 	}
 
 	// also try furman.edu/shi-instiute
-	id = await getPageOrPostId(FUWEB, pathname);
+	[type, id] = await getPageOrPostId(FUWEB, pathname);
 	if (id) {
-		return id;
+		return [type, id] as const;
 	}
 
-	return null;
+	return [null, null] as const;
 }
+
+const DEFAULT_POST_TYPE_CASCADE = ['pages', 'posts', 'projects', 'services', 'people', 'staff', 'affiliates', 'fellows'] as const;
 
 /**
  * Queries the WordPress REST API to find a page or post with a slug matching the
@@ -173,36 +284,28 @@ export async function getIdFromPathname(pathname: string) {
  * @param path The path for which a corresponding page or post ID should be found (e.g. /projects/rcdst)
  * @returns The numeric ID of the matching page or post or null
  */
-async function getPageOrPostId(baseUrl: string, path: string) {
+async function getPageOrPostId(baseUrl: string, path: string, typeCascade = DEFAULT_POST_TYPE_CASCADE as unknown as string[]) {
 	const slug = path
 		.replace(/^\/|\/$/g, '')
 		.split('/')
 		.pop();
 	if (!slug) {
-		return null;
+		return [null, null] as const;
 	}
 
-	// try pages first
-	let url = `${baseUrl}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`;
-	let res = await fetch(url, {
-		headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
-	});
-	let data = await res.json();
-	if (Array.isArray(data) && data.length > 0 && typeof data[0].id === 'number') {
-		return data[0].id as number;
+	// try each type in order until a match is found
+	for (const type of typeCascade) {
+		let url = `${baseUrl}/wp-json/wp/v2/${type}?slug=${encodeURIComponent(slug)}`;
+		let res = await fetch(url, {
+			headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
+		});
+		let data = await res.json();
+		if (Array.isArray(data) && data.length > 0 && typeof data[0].id === 'number') {
+			return [type, data[0].id] as const;
+		}
 	}
 
-	// if no match, try posts
-	url = `${baseUrl}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}`;
-	res = await fetch(url, {
-		headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
-	});
-	data = await res.json();
-	if (Array.isArray(data) && data.length > 0 && typeof data[0].id === 'number') {
-		return data[0].id as number;
-	}
-
-	return null;
+	return [null, null] as const;
 }
 
 const wpDate = z
@@ -211,7 +314,7 @@ const wpDate = z
 	.or(z.string().datetime())
 	.describe('WordPress datetime');
 
-export const wordpressPostSchema = z.object({
+const wordpressProjectSchema = z.object({
 	id: z.number(),
 	date: wpDate,
 	date_gmt: wpDate,
@@ -219,7 +322,7 @@ export const wordpressPostSchema = z.object({
 	modified_gmt: wpDate,
 	slug: z.string(),
 	status: z.string(),
-	type: z.literal('post'),
+	type: z.literal('projects'),
 	link: z.string().url(),
 	title: z.object({ rendered: z.string() }),
 	content: z.object({
@@ -232,14 +335,10 @@ export const wordpressPostSchema = z.object({
 	}),
 	author: z.number(),
 	featured_media: z.number(),
-	comment_status: z.string(),
-	ping_status: z.string(),
-	sticky: z.boolean(),
 	template: z.string(),
-	format: z.string(),
 	meta: z.record(z.string(), z.unknown()),
-	categories: z.array(z.number()),
-	tags: z.array(z.number()),
+	'project-category': z.array(z.number()),
+	'project-tag': z.array(z.number()),
 	_links: z.record(z.string(), z.unknown()),
 });
 

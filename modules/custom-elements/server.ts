@@ -34,6 +34,12 @@ export async function render<N extends ComponentName>(
 	const component = components[componentName] as Component<any>;
 	const uuid = crypto.randomUUID();
 
+	if (!globals.url) {
+		console.warn(
+			'globals.url is not set. Components that expect the correct URL may not render correctly. Please provide a URL in the globals parameter when calling render().',
+		);
+	}
+
 	setUrlForSsr(new SvelteURL(globals.url ?? 'https://localhost:8787/'));
 
 	let renderOutput: Awaited<ReturnType<typeof renderComponent>>;
@@ -164,15 +170,16 @@ export async function renderCustomElements({ prefix, globals, adjustPropsBeforeR
 			Object.entries(elementAttributes).filter(([key]) => key.startsWith('on') || key == 'id'),
 		);
 		let props = attributesToProps(componentName, elementAttributes);
-		if (process.env.DEVELOPMENT) {
-			console.debug(`Rendering <${tagName}> with props:`, props);
-		}
 
 		if (adjustPropsBeforeRender) {
 			const adjustedProps = adjustPropsBeforeRender(props, componentName);
 			if (adjustedProps) {
 				props = adjustedProps;
 			}
+		}
+
+		if (process.env.DEVELOPMENT) {
+			console.debug(`Rendering <${tagName}> with props:`, props);
 		}
 
 		const slotHTML = element.innerHTML.trim() ? element.innerHTML.trim() : undefined;
