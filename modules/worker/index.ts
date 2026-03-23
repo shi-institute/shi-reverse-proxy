@@ -7,7 +7,7 @@ import furmanVideoPrefersReducedMotionSupport from '../static/furman-edu-video-r
 import { ReverseProxy } from './ReverseProxy';
 import handleApiRequest from './api';
 import { getFooterHTML } from './footer';
-import { getInjectableNavigation, getNavigationMenuData } from './menu';
+import { getInjectableNavigation } from './menu';
 import { redirects } from './redirects';
 
 export default {
@@ -23,20 +23,6 @@ export default {
 			// redirect origins to shi.institute
 			if (env.PRODUCTION && requestUrl.hostname !== 'shi.institute') {
 				return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://shi.institute'), 307);
-			}
-
-			// provide an easy way to list the menu items
-			if (requestUrl.pathname === '/.data/menus.json') {
-				const menuItems = await getNavigationMenuData(ctx);
-				return new Response(JSON.stringify(menuItems), {
-					headers: {
-						'Content-Type': 'application/json; charset=utf-8',
-						'Access-Control-Allow-Origin': '*',
-						'Cache-Control': 'public, max-age=60',
-					},
-					status: 200,
-					statusText: 'OK',
-				});
 			}
 
 			// if there is a redirect for the current path, follow it
@@ -120,10 +106,10 @@ export default {
 							});
 
 							// inject our own navigation elements
-							body = body.replace(
-								`<!-- End Google Tag Manager (noscript) -->`,
-								`<!-- End Google Tag Manager (noscript) -->${await getInjectableNavigation(ctx, requestUrl)}`,
-							);
+							const skipLinkOuterHTML = body.match(/<a\b[^>]*\brole-action\s*=\s*["']skip-link["'][^>]*>[\s\S]*?<\/a>/i)?.[0];
+							if (skipLinkOuterHTML) {
+								body = body.replace(skipLinkOuterHTML, skipLinkOuterHTML + (await getInjectableNavigation(ctx, requestUrl)));
+							}
 
 							// inject dark mode support via darkreader
 							body = body.replace(
