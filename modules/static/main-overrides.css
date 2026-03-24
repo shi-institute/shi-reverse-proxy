@@ -382,21 +382,12 @@ figure.alignright {
 
 /* Make aligned left and right figures use a proportion of the available
 width on wide screens. */
-.post-type-projects,
-.single-projects {
+.wp-singular,
+.page,
+body[class*='post-type-'] {
 	figure.alignright,
 	figure.alignleft {
 		width: 50%;
-	}
-	@media (min-width: 1480px) {
-		figure.alignright {
-			width: 75%;
-			margin-right: -37.5%;
-		}
-		figure.alignleft {
-			width: 75%;
-			margin-left: -37.5%;
-		}
 	}
 	@media (max-width: 800px) {
 		figure.alignright,
@@ -408,6 +399,20 @@ width on wide screens. */
 		figure.alignleft figcaption {
 			margin-left: var(--wp--style--root--padding-left, 0);
 			margin-right: var(--wp--style--root--padding-right, 0);
+		}
+	}
+}
+/*  On post pages, also offset by 50% on wide widths */
+@media (min-width: 1480px) {
+	.post-type-projects,
+	.single-projects {
+		figure.alignright {
+			width: 75%;
+			margin-right: -37.5%;
+		}
+		figure.alignleft {
+			width: 75%;
+			margin-left: -37.5%;
 		}
 	}
 }
