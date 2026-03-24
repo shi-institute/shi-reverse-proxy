@@ -150,14 +150,14 @@ export async function getInjectableNavigation(ctx: ExecutionContext<{ adminBarHr
 		<script type="module">
 			// on Alt + Shift + E, launch the WordPress editor for current page or post if it exists
 			window.addEventListener('keydown', async (event) => {
-				if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'e') {
+				if (event.altKey && event.shiftKey && (event.key.toLowerCase() === 'e' || event.code === 'KeyE')) {
 					event.preventDefault();
 					window.open(\`/.api/editor\${window.location.pathname}\`, '_blank', 'width=1600,height=1000');
 				}
 			});
 			// on Alt + Shift + A, show the admin bar if it's hidden, or hide it if it's visible
 			window.addEventListener('keydown', async (event) => {
-				if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'a') {
+				if (event.altKey && event.shiftKey && (event.key.toLowerCase() === 'a' || event.code === 'KeyA')) {
 					event.preventDefault();
 					const isVisible = localStorage.getItem('adminBarVisible') === 'true';
 					localStorage.setItem('adminBarVisible', String(!isVisible));
