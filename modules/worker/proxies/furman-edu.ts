@@ -101,7 +101,6 @@ export default {
 					body = body.replaceAll(new RegExp(`\\bhref\\s*=\\s*["'](\\/[^"']*)["']`, 'gi'), (match, originalHref, value) => {
 						if (Object.keys(mandatoryShiInstituteRewrites).includes(originalHref)) {
 							const aliasPath = mandatoryShiInstituteRewrites[originalHref];
-							console.log(`Rewriting ${originalHref} to ${aliasPath} in href attribute`);
 							return `href="${aliasPath}"`;
 						}
 

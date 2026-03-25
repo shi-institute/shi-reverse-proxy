@@ -3,7 +3,7 @@ import handleApiRequest from './api';
 import { ReverseProxyHandlerQueue } from './common/ReverseProxy';
 import { RewritableRequest } from './common/RewritableRequest';
 import * as proxies from './proxies';
-import { redirects } from './redirects';
+import { redirects, rewrites } from './redirects';
 
 export default {
 	async fetch(
@@ -15,7 +15,7 @@ export default {
 			const rr = new RewritableRequest(_request);
 			const { request, requestUrl } = rr;
 
-			// redirect origins to shi.institute
+			// redirect all origins to shi.institute when in a production deployment
 			if (env.PRODUCTION && requestUrl.hostname !== 'shi.institute') {
 				return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://shi.institute'), 307);
 			}
@@ -24,6 +24,20 @@ export default {
 			const maybeRedirectPathname = redirects[requestUrl.pathname.endsWith('/') ? requestUrl.pathname.slice(0, -1) : requestUrl.pathname];
 			if (maybeRedirectPathname) {
 				return Response.redirect(new URL(maybeRedirectPathname, requestUrl.origin), 302);
+			}
+
+			// if there is an alias for the current path, redirect to the alias
+			if (rewrites[requestUrl.pathname]) {
+				return Response.redirect(new URL(rewrites[requestUrl.pathname]!, requestUrl.origin), 302);
+			}
+
+			// if the current path is an alias, rewrite it to the original path so that
+			// it can be properly handled by the reverse proxies
+			if (Object.values(rewrites).includes(requestUrl.pathname)) {
+				const originalPathname = Object.keys(rewrites).find((key) => rewrites[key] === requestUrl.pathname);
+				if (originalPathname) {
+					requestUrl.pathname = originalPathname;
+				}
 			}
 
 			// handle API requests

@@ -1,4 +1,5 @@
 import z from 'zod';
+import { rewrites } from './redirects';
 
 const BLOG = 'https://blogs.furman.edu/jbtest';
 const FUWEB = 'https://www.furman.edu/shi-institute';
@@ -13,16 +14,16 @@ export default {
 
 		if (url.pathname.startsWith('/.api/get-id/')) {
 			const path = url.pathname.replace('/.api/get-id', '');
-			const [, id] = await getIdFromPathname(path);
+			const [, id, resolvedPathname] = await getIdFromPathname(path);
 
 			if (id) {
-				return new Response(JSON.stringify({ id }), {
+				return new Response(JSON.stringify({ id, pathname: resolvedPathname || path }), {
 					headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
 					status: 200,
 					statusText: 'OK',
 				});
 			} else {
-				return new Response(`No post or page found for path: ${path}`, {
+				return new Response(`No post or page found for path: ${resolvedPathname || path}`, {
 					headers: { 'Access-Control-Allow-Origin': '*' },
 					status: 404,
 					statusText: 'Not Found',
@@ -32,16 +33,16 @@ export default {
 
 		if (url.pathname.startsWith('/.api/editor/')) {
 			const path = url.pathname.replace('/.api/editor', '');
-			const [type, id] = await getIdFromPathname(path);
+			const [type, id, resolvedPathname] = await getIdFromPathname(path);
 
 			if (!id) {
-				return new Response(`No post or page found for path: ${path}`, {
+				return new Response(`No post or page found for path: ${resolvedPathname || path}`, {
 					status: 404,
 					statusText: 'Not Found',
 				});
 			}
 
-			const isFurmanEdu = path.startsWith('/shi-institute');
+			const isFurmanEdu = resolvedPathname.startsWith('/shi-institute');
 			const editUrl = isFurmanEdu
 				? `${FUWEB}/wp-admin/post.php?post=${id}&action=edit`
 				: type === 'pages'
@@ -259,19 +260,27 @@ export type ProjectBriefs = ProjectBrief[];
  * @returns The ID of the matching page or post or null if no match is found on either WordPress site
  */
 export async function getIdFromPathname(pathname: string) {
+	// convert rewrite aliases back to their original paths so that we can find the correct IDs via the API
+	if (Object.values(rewrites).includes(pathname)) {
+		const originalPathname = Object.keys(rewrites).find((key) => rewrites[key] === pathname);
+		if (originalPathname) {
+			pathname = originalPathname;
+		}
+	}
+
 	// try the blog API first
 	let [type, id] = await getPageOrPostId(BLOG, pathname);
 	if (id) {
-		return [type, id] as const;
+		return [type, id, pathname] as const;
 	}
 
 	// also try furman.edu/shi-instiute
 	[type, id] = await getPageOrPostId(FUWEB, pathname);
 	if (id) {
-		return [type, id] as const;
+		return [type, id, pathname] as const;
 	}
 
-	return [null, null] as const;
+	return [null, null, pathname] as const;
 }
 
 const DEFAULT_POST_TYPE_CASCADE = ['pages', 'posts', 'projects', 'services', 'people', 'staff', 'affiliates', 'fellows'] as const;

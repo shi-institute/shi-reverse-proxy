@@ -1,3 +1,5 @@
+// Format: original location: new location
+// If the client requests the original location, they will be redirected to the new location.
 export const redirects: Record<string, string> = {
 	'/rcdst': '/research/rural-change-diagnostic-screen',
 
@@ -33,4 +35,15 @@ export const redirects: Record<string, string> = {
 	'/favicon.ico': '/favicon.svg',
 	'/favicon.svg': '/files/2026/03/shi-favicon.svg',
 	'/shi-institute': '/',
+};
+
+// Format: original: alias
+// If a client requests the original path, they will be redirected to the alias path.
+// If a client requests the alias path, it will be internally rewritten to the original path,
+// but the client will still see the alias path in the browser.
+export const rewrites: Record<string, string> = {
+	'/shi-institute/new-home/': '/', // replace home page with furman.edu/shi-institute
+	'/shi-institute/sustainability/student-experiences/': '/students/',
+	'/shi-institute/sustainability/student-fellows/': '/students/fellowships/',
+	'/shi-institute/sustainability/community-conservation-corps/': '/community-conservation-corps/',
 };
