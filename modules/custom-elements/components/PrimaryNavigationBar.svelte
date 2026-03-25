@@ -88,6 +88,17 @@
 		height: 100%;
 	}
 
+	@media (width < 1160px) {
+		:global(.nav-list .eagerly-hide) {
+			display: none;
+		}
+	}
+	@media (width >= 1160px) {
+		:global(.nav-list .show-after-eagerly-hidden) {
+			display: none;
+		}
+	}
+
 	@media (width < 1030px) {
 		.right :global(li) {
 			letter-spacing: -0.3;

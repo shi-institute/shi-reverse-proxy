@@ -17,6 +17,7 @@
 	export interface NavigationListLinkItem {
 		type?: 'link';
 		label: string;
+		class?: string;
 		href?: string;
 	}
 
@@ -74,7 +75,7 @@
 		{:else if item.type === 'spacer'}
 			<div style={direction === 'vertical' ? `height: ${item.size};` : `width: ${item.size};`}></div>
 		{:else}
-			<li>
+			<li class={item.class}>
 				{#if item.href}
 					{@const useNewTab = item.label.endsWith('↗')}
 					<a
@@ -135,7 +136,7 @@
 								{#if child.type === 'divider'}
 									<hr />
 								{:else}
-									<li>
+									<li class={child.class}>
 										{#if child.href}
 											{@const useNewTab = child.label.endsWith('↗')}
 											<a
@@ -161,7 +162,7 @@
 							{#if child.type === 'divider'}
 								<hr />
 							{:else}
-								<li>
+								<li class={child.class}>
 									{#if child.href}
 										{@const useNewTab = child.label.endsWith('↗')}
 										<a

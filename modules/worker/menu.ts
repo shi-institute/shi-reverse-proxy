@@ -94,12 +94,14 @@ function toNavigationListItem(item: z.infer<typeof navigationMenuSchema>['items'
 			type: 'link',
 			label: item.text,
 			href: item.attributes.href,
+			class: item.attributes.class,
 			children: item.children.map(toNavigationListItem).filter((item) => item.type !== 'spacer'),
 		};
 	}
 
 	return {
 		label: item.text,
+		class: item.attributes.class,
 		href: item.attributes.href,
 	};
 }
@@ -287,10 +289,14 @@ const navigationMenuSchema = z
 
 			const shouldOpenInNewTab = elem.getAttribute('target') === '_blank' || text.endsWith(' ↗');
 			const target = shouldOpenInNewTab ? '_blank' : '_self';
+			const classNames = elem.parentElement?.classList.value
+				.split(' ')
+				.filter((cls) => !cls.startsWith('wp-block-navigation'))
+				.join(' ');
 
 			const rel = shouldOpenInNewTab ? 'noopener noreferrer' : elem.getAttribute('rel') || undefined;
 
-			return { tagName: 'a' as const, text, attributes: { href, target, rel } };
+			return { tagName: 'a' as const, text, attributes: { href, target, rel, class: classNames } };
 		}
 
 		const menuItems = listItems

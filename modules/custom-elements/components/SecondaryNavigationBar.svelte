@@ -46,4 +46,10 @@
 		font-size: 13px;
 		padding: 8px 0;
 	}
+
+	@media (width >= 1160px) {
+		:global(.nav-list .show-after-eagerly-hidden) {
+			display: none;
+		}
+	}
 </style>
