@@ -273,7 +273,7 @@
 	}
 
 	.side-nav-content :global(ul) {
-		gap: 0.75rem;
+		--gap: 0.75rem;
 	}
 
 	.side-nav-content :global(a) {

@@ -1,7 +1,7 @@
 import { parseHTML } from 'linkedom';
 import z from 'zod';
 import customElementsCss from '../custom-elements/components/custom-elements.css';
-import type { NavigationListItem } from '../custom-elements/components/navigation-bar-parts/NavigationList.svelte';
+import type { TopLevelNavigationListItem } from '../custom-elements/components/navigation-bar-parts/NavigationList.svelte';
 import { render } from '../custom-elements/server.js';
 
 type NavigationTier = 'secondaryLeft' | 'secondaryRight' | 'desktopNavbar' | 'sideMenu' | 'footerMenu';
@@ -32,11 +32,15 @@ async function getNavigationMenuItems(
 	const timeoutId = setTimeout(() => controller.abort(), 5000);
 
 	try {
-		const navigationMenusResponse = await fetch(cacheKey.url, {
+		const url = new URL(cacheKey.url);
+		url.searchParams.set('cacheBust', Date.now().toString());
+		const navigationMenusResponse = await fetch(url, {
 			headers: {
 				Accept: 'application/json',
 				'User-Agent': 'Cloudflare-Worker/1.0',
 				Host: 'blogs.furman.edu',
+				'Cache-Control': 'no-cache',
+				Pragma: 'no-cache',
 			},
 			signal: controller.signal,
 		});
@@ -80,9 +84,18 @@ async function getNavigationMenuItems(
 	}
 }
 
-function toNavigationListItem(item: z.infer<typeof navigationMenuSchema>['items'][number]): NavigationListItem {
+function toNavigationListItem(item: z.infer<typeof navigationMenuSchema>['items'][number]): TopLevelNavigationListItem {
 	if (item.tagName === 'spacer') {
 		return { type: 'spacer', size: item.attributes.size };
+	}
+
+	if ('children' in item && item.children && item.children.length > 0) {
+		return {
+			type: 'link',
+			label: item.text,
+			href: item.attributes.href,
+			children: item.children.map(toNavigationListItem).filter((item) => item.type !== 'spacer'),
+		};
 	}
 
 	return {
@@ -225,9 +238,16 @@ export async function getNavigationMenuData(ctx: ExecutionContext<{ adminBarHref
 
 	return {
 		primary: primary.items.map(toNavigationListItem).flatMap((item, index, array) => {
-			// add a divider before services and after projects
-			if (index === array.length - 3 || index === array.length - 1) {
-				return [item, { type: 'divider' } as NavigationListItem];
+			// add divider
+			const insertDividerBefore = ['for students', 'services'];
+			const insertDividerAfter = ['projects'];
+			if (item.type === 'link' || item.type === undefined) {
+				if (insertDividerBefore.includes(item.label.toLowerCase())) {
+					return [{ type: 'divider' } as TopLevelNavigationListItem, item];
+				}
+				if (insertDividerAfter.includes(item.label.toLowerCase())) {
+					return [item, { type: 'divider' } as TopLevelNavigationListItem];
+				}
 			}
 
 			return item;
@@ -249,28 +269,49 @@ const navigationMenuSchema = z
 		const { id, slug, title, content } = item;
 
 		// parse the rendered content to extract the menu items and their URLs
-		const { document, HTMLAnchorElement, HTMLElement } = parseHTML(content.rendered);
-		const listItems = Array.from(document.querySelectorAll(':where(a, div)'));
+		const { document, HTMLAnchorElement, HTMLElement } = parseHTML(`<html><body>${content.rendered}</body></html>`);
+		// body > li > a === top-level menu item
+		// body > div === top-level spacers
+		const listItems = Array.from(document.querySelectorAll(':where(body > li > a, body > div)'));
+
+		function processAnchorElement(elem: HTMLAnchorElement) {
+			const text = elem.textContent || '';
+
+			let href = elem.getAttribute('href') || '';
+			if (href.startsWith(BLOG)) {
+				href = href.substring(BLOG.length);
+				if (!href.startsWith('/')) {
+					href = '/' + href;
+				}
+			}
+
+			const shouldOpenInNewTab = elem.getAttribute('target') === '_blank' || text.endsWith(' ↗');
+			const target = shouldOpenInNewTab ? '_blank' : '_self';
+
+			const rel = shouldOpenInNewTab ? 'noopener noreferrer' : elem.getAttribute('rel') || undefined;
+
+			return { tagName: 'a' as const, text, attributes: { href, target, rel } };
+		}
 
 		const menuItems = listItems
 			.map((elem) => {
 				if (elem instanceof HTMLAnchorElement) {
-					const text = elem.textContent || '';
+					const itemInfo = processAnchorElement(elem);
 
-					let href = elem.getAttribute('href') || '';
-					if (href.startsWith(BLOG)) {
-						href = href.substring(BLOG.length);
-						if (!href.startsWith('/')) {
-							href = '/' + href;
-						}
+					// if there are no children, return the item info as-is
+					const listItem = elem.parentElement as HTMLLIElement | null;
+					if (!listItem || listItem.tagName.toLocaleLowerCase() !== 'li' || !listItem.classList.contains('has-child')) {
+						return itemInfo;
 					}
 
-					const shouldOpenInNewTab = elem.getAttribute('target') === '_blank' || text.endsWith(' ↗');
-					const target = shouldOpenInNewTab ? '_blank' : '_self';
+					// list all child anchors
+					const children = Array.from(listItem.querySelectorAll('.wp-block-navigation-submenu > li > a'))
+						.filter((elem) => elem instanceof HTMLAnchorElement)
+						.map((childAncor) => {
+							return processAnchorElement(childAncor);
+						});
 
-					const rel = shouldOpenInNewTab ? 'noopener noreferrer' : elem.getAttribute('rel') || undefined;
-
-					return { tagName: 'a' as const, text, attributes: { href, target, rel } };
+					return { ...itemInfo, children };
 				}
 
 				if (elem instanceof HTMLElement && elem.classList.contains('wp-block-spacer')) {

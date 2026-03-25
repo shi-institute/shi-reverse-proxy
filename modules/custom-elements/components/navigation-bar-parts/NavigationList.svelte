@@ -4,11 +4,13 @@
 	import { url } from '../../utils/navigation';
 
 	export interface NavigationListProps {
-		items: NavigationListItem[];
+		items: TopLevelNavigationListItem[];
 		transformHref?: (href: string) => string;
 		direction?: 'horizontal' | 'vertical';
 		onItemClick?: () => void;
 	}
+
+	export type TopLevelNavigationListItem = NavigationListLinkItemWithChildren | NavigationListItem;
 
 	export type NavigationListItem = NavigationListLinkItem | NavigationListDividerItem | NavigationListSpacerItem;
 
@@ -16,6 +18,10 @@
 		type?: 'link';
 		label: string;
 		href?: string;
+	}
+
+	export interface NavigationListLinkItemWithChildren extends NavigationListLinkItem {
+		children: (NavigationListLinkItem | NavigationListDividerItem)[];
 	}
 
 	export type NavigationListDividerItem = {
@@ -56,10 +62,13 @@
 		}
 		return transformed;
 	}
+
+	let navListElement = $state<HTMLUListElement | null>(null);
 </script>
 
-<ul class:vertical={direction === 'vertical'} class="nav-list">
+<ul class:vertical={direction === 'vertical'} class="nav-list" bind:this={navListElement}>
 	{#each items as item}
+		{@const itemId = 'i' + crypto.randomUUID()}
 		{#if item.type === 'divider'}
 			<hr />
 		{:else if item.type === 'spacer'}
@@ -70,6 +79,7 @@
 					{@const useNewTab = item.label.endsWith('↗')}
 					<a
 						href={transformHref(item.href)}
+						class="nav-link"
 						class:current={doUrlsMatch(transformHref(item.href), $url.href)}
 						target={useNewTab ? '_blank' : '_self'}
 						rel="noopener noreferrer"
@@ -79,6 +89,97 @@
 					</a>
 				{:else}
 					<span>{item.label}</span>
+				{/if}
+				{#if 'children' in item && item.children.length > 0 && direction === 'horizontal'}
+					<button
+						aria-label="Open child navigation"
+						class="child-nav-trigger"
+						onclick={() => {
+							const childNavWrapper = navListElement?.querySelector(`#${itemId}-child-nav`) as HTMLElement | null;
+							if (!childNavWrapper) {
+								return;
+							}
+							const isCurrentlyVisible = childNavWrapper.style.visibility === 'visible';
+
+							const firstChildNavAnchor = childNavWrapper.querySelector('a');
+							if (!firstChildNavAnchor || !(firstChildNavAnchor instanceof HTMLAnchorElement)) {
+								return;
+							}
+
+							// Since the browser will not focus elements that are not visible, we need to
+							// force the child nav wrapper to be visible before focusing the first child anchor.
+							if (!isCurrentlyVisible) {
+								childNavWrapper.style.visibility = 'visible';
+								childNavWrapper.style.transition = 'none';
+								setTimeout(() => {
+									childNavWrapper.style.visibility = '';
+									childNavWrapper.style.transition = '';
+								}, 5);
+							}
+
+							setTimeout(() => {
+								firstChildNavAnchor.focus();
+							}, 6);
+						}}
+					>
+						<svg viewBox="0 0 24 24">
+							<path
+								d="M4.22 8.47a.75.75 0 0 1 1.06 0L12 15.19l6.72-6.72a.75.75 0 1 1 1.06 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L4.22 9.53a.75.75 0 0 1 0-1.06Z"
+								fill="currentColor"
+							/>
+						</svg>
+					</button>
+					<div class="child-nav-list-wrapper" id={`${itemId}-child-nav`}>
+						<ul class="child-nav-list">
+							{#each item.children as child}
+								{#if child.type === 'divider'}
+									<hr />
+								{:else}
+									<li>
+										{#if child.href}
+											{@const useNewTab = child.label.endsWith('↗')}
+											<a
+												href={transformHref(child.href)}
+												class:current={doUrlsMatch(transformHref(child.href), $url.href)}
+												target={useNewTab ? '_blank' : '_self'}
+												rel="noopener noreferrer"
+												onclick={onItemClick}
+											>
+												<span>{child.label}</span>
+											</a>
+										{:else}
+											<span>{child.label}</span>
+										{/if}
+									</li>
+								{/if}
+							{/each}
+						</ul>
+					</div>
+				{:else if 'children' in item && item.children.length > 0 && direction === 'vertical'}
+					<ul class="nav-list indent">
+						{#each item.children as child}
+							{#if child.type === 'divider'}
+								<hr />
+							{:else}
+								<li>
+									{#if child.href}
+										{@const useNewTab = child.label.endsWith('↗')}
+										<a
+											href={transformHref(child.href)}
+											class:current={doUrlsMatch(transformHref(child.href), $url.href)}
+											target={useNewTab ? '_blank' : '_self'}
+											rel="noopener noreferrer"
+											onclick={onItemClick}
+										>
+											<span>{child.label}</span>
+										</a>
+									{:else}
+										<span>{child.label}</span>
+									{/if}
+								</li>
+							{/if}
+						{/each}
+					</ul>
 				{/if}
 			</li>
 		{/if}
@@ -92,17 +193,25 @@
 		align-items: center;
 		margin: 0;
 		padding: 0;
-		gap: calc(4 / 3 * 1rem);
+		gap: var(--gap, calc(4 / 3 * 1rem));
+	}
+	ul.indent {
+		margin-inline-start: 1.5rem;
 	}
 
-	ul.vertical {
+	ul.nav-list.vertical {
 		flex-direction: column;
 		align-items: stretch;
 	}
 
 	li {
 		display: flex;
-		align-items: center;
+		align-items: stretch;
+		position: relative;
+	}
+	ul.nav-list.vertical li {
+		flex-direction: column;
+		gap: var(--gap, calc(4 / 3 * 1rem));
 	}
 
 	a span {
@@ -118,14 +227,14 @@
 		border-bottom-style: solid;
 		border-bottom-color: transparent;
 		display: inline-block;
-		transition: var(--shi-transition-120ms);
+		transition: all var(--shi-transition-120ms);
 		user-select: none;
 	}
 	a.current span {
 		border-bottom-color: var(--shi-navbar-color--current);
 		color: var(--shi-navbar-color--current);
 	}
-	a:hover span {
+	a.nav-link:hover span {
 		border-bottom-color: var(--shi-navbar-color--hover);
 		color: var(--shi-navbar-color--hover);
 	}
@@ -133,7 +242,7 @@
 		border-bottom-color: var(--shi-navbar-color--current--hover);
 		color: var(--shi-navbar-color--current--hover);
 	}
-	a:active span {
+	a.nav-link:active span {
 		border-bottom-color: var(--shi-navbar-color--active);
 		color: var(--shi-navbar-color--active);
 	}
@@ -150,10 +259,85 @@
 		margin: 0;
 	}
 
-	ul.vertical hr {
+	ul.nav-list.vertical hr {
 		border-left-width: 0;
 		border-top-width: 1px;
 		width: 100%;
 		height: 0;
+	}
+
+	button {
+		appearance: none;
+		border: none;
+		min-height: 100%;
+		padding: 0 0 2px 0.25rem;
+		background-color: transparent;
+	}
+	button svg {
+		inline-size: 14px;
+		block-size: 14px;
+		transition: transform var(--shi-transition-120ms);
+		transition-delay: var(--shi-transition-250ms);
+	}
+	li:has(a.nav-link):hover > .child-nav-trigger svg,
+	li:has(.child-nav-list-wrapper:focus-within) > .child-nav-trigger svg {
+		transform: rotate(180deg);
+		transition-delay: var(--shi-transition-120ms);
+	}
+
+	div.child-nav-list-wrapper {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		z-index: 1000;
+		opacity: 0;
+		visibility: hidden;
+		transition: all var(--shi-transition-250ms) allow-discrete;
+		transition-delay: 250ms; /* delay hiding the menu */
+	}
+	li:has(a.nav-link):hover > .child-nav-list-wrapper,
+	.child-nav-list-wrapper:focus-within {
+		opacity: 1;
+		visibility: visible;
+		animation: slide-down var(--shi-transition-250ms) ease;
+		transition-delay: 80ms;
+		animation-delay: 80ms;
+	}
+
+	ul.child-nav-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		margin-top: var(--shi-child-navlist-offset-y, 0.5rem);
+		background-color: var(--shi-child-navlist-background-color, var(--shi-navbar-background-color));
+		box-shadow:
+			inset 0 0 0 1px var(--shi-divider-color),
+			0 4px 6px rgba(0, 0, 0, 0.1);
+		min-width: 160px;
+	}
+
+	@keyframes slide-down {
+		from {
+			transform: translateY(-10px);
+		}
+		to {
+			transform: translateY(0);
+		}
+	}
+
+	ul.child-nav-list :where(li, a) {
+		width: 100%;
+	}
+
+	ul.child-nav-list a {
+		padding: 0.375rem 1rem;
+		display: block;
+		transition: all var(--shi-transition-120ms) allow-discrete;
+	}
+	ul.child-nav-list a:hover {
+		background-color: color-mix(in srgb, var(--shi-color-purple), transparent 92%);
+	}
+	ul.child-nav-list a:active {
+		background-color: color-mix(in srgb, var(--shi-color-purple), transparent 84%);
 	}
 </style>
