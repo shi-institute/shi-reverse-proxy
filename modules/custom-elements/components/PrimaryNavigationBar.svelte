@@ -88,6 +88,18 @@
 		height: 100%;
 	}
 
+	@media (width < 1030px) {
+		.right :global(li) {
+			letter-spacing: -0.3;
+		}
+		.right {
+			gap: 0.75rem;
+		}
+		.right :global(ul) {
+			--gap: 0.75rem;
+		}
+	}
+
 	@media (width < 600px) {
 		.right > :global(.search-wrapper) {
 			display: none !important;
