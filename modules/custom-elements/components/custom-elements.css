@@ -51,3 +51,10 @@
 		--shi-transition-2s: 0s;
 	}
 }
+
+@font-face {
+	font-family: 'Epilogue';
+	src: url('/files/fonts/Epilogue-VariableFont_wght.ttf') format('truetype');
+	font-weight: 100 900;
+	font-style: normal;
+}

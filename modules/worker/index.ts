@@ -50,6 +50,7 @@ export default {
 			const proxyQueue = new ReverseProxyHandlerQueue<{ adminBarHref?: string }>();
 			proxyQueue.enqueue(proxies.interactiveWeb);
 			proxyQueue.enqueue(proxies.furmanEdu);
+			proxyQueue.enqueue(proxies.sli);
 			proxyQueue.enqueue(proxies.blogsFurmanEdu);
 
 			const proxiedResponse = await proxyQueue.flush(rr, env, ctx);
