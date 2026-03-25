@@ -1,3 +1,6 @@
+import type { ReverseProxyHandler } from './Handler';
+import type { RewritableRequest } from './RewritableRequest';
+
 interface ReverseProxyOptions {
 	originServer: URL;
 	notFoundPaths?: string[];
@@ -216,6 +219,81 @@ export class ReverseProxy {
 		}
 
 		return body;
+	}
+}
+
+export class ReverseProxyHandlerQueue<ExecutionContextProps> {
+	private queue: Set<ReverseProxyHandler<ExecutionContextProps>>;
+
+	constructor() {
+		this.queue = new Set();
+	}
+
+	/**
+	 * Adds a proxy handler to the queue.
+	 */
+	enqueue(proxy: ReverseProxyHandler<ExecutionContextProps>) {
+		this.queue.add(proxy);
+	}
+
+	/**
+	 * Removes a proxy handler from the front of the queue and returns it.
+	 * @returns The removed proxy handler. If the queue is empty, this value will be undefined.
+	 */
+	dequeue() {
+		return this.queue.values().next().value;
+	}
+
+	/**
+	 * Deletes a specified proxy handler from the queue.
+	 * @param proxy The proxy handler to delete from the queue.
+	 * @returns true if the proxy handler was found and deleted; otherwise, false.
+	 */
+	delete(proxy: ReverseProxyHandler<ExecutionContextProps>) {
+		return this.queue.delete(proxy);
+	}
+
+	/**
+	 * Returns the number of proxy handlers in the queue.
+	 */
+	size(): number {
+		return this.queue.size;
+	}
+
+	/**
+	 * Clears all proxy handlers from the queue.
+	 */
+	clear() {
+		this.queue.clear();
+	}
+
+	/**
+	 * Process each proxy handler in the queue with the given request, environment,
+	 * and execution context until a handler returns a response. If a handler returns
+	 * a response, that response is returned, and the remaining handlers
+	 * in the queue are not processed. If no handlers return a response, this method
+	 * returns void (undefined).
+	 */
+	async flush(
+		request: RewritableRequest<Request<unknown, IncomingRequestCfProperties>>,
+		env: Env,
+		ctx: ExecutionContext<ExecutionContextProps>,
+	): Promise<Response | void> {
+		let response: Response | undefined = undefined;
+
+		for await (const handler of this.queue) {
+			const maybeResponse = await handler.fetch(request, env, ctx);
+			if (maybeResponse) {
+				response = maybeResponse;
+				break;
+			}
+		}
+
+		this.queue.clear();
+
+		if (response) {
+			return response;
+		}
 	}
 }
 
