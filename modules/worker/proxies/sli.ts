@@ -31,6 +31,16 @@ export default {
 						`<title>Sustainability Leadership Initiative (SLI) | Shi Institute + Sustain SC | Furman University</title>`,
 					);
 
+					// add fallback fonts
+					body = body.replace(
+						'</head>',
+						`<style>
+							body {
+								--heading-font-font-family: "brandon-grotesque", Poppins, sans-serif;
+							}
+						</style></head>`,
+					);
+
 					// inject our own navigation elements
 					body = body.replace(
 						/(<div[\s\S]*?\bid\s*=\s*["']siteWrapper["'][\s\S]*?>)/,
