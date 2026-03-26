@@ -140,16 +140,11 @@ export async function getInjectableNavigation(ctx: ExecutionContext<{ adminBarHr
 	);
 
 	return `
+		<style>${customElementsCss}</style>
 		${await adminBarHtml}
 		${await secondaryMenuBarHtml}
 		${await primaryMenuBarHtml}
 		<script src="/custom-elements.js" type="module"></script>
-		<style>${customElementsCss}</style>
-		<style>
-			@view-transition {
-				navigation: auto;
-			}
-		</style>
 		<style>
 			/* hide the old menus */
 			header > div:nth-child(1),

@@ -1,5 +1,6 @@
 import furmanDarkModeOverrides from '../../static/furman-edu-dark-mode.html';
 import furmanHomeOverrides from '../../static/furman-edu-home-overrides.css';
+import furmanOverrides from '../../static/furman-edu-overrides.css';
 import furmanVideoPrefersReducedMotionSupport from '../../static/furman-edu-video-reduce-motion-support.html';
 import type { ReverseProxyHandler } from '../common/Handler';
 import { ReverseProxy } from '../common/ReverseProxy';
@@ -113,11 +114,14 @@ export default {
 						body = body.replace(skipLinkOuterHTML, skipLinkOuterHTML + (await getInjectableNavigation(ctx, requestUrl)));
 					}
 
-					// inject dark mode support via darkreader
+					// inject CSS overrides
 					body = body.replace(
 						'<meta charset="utf-8">',
-						`<meta charset="utf-8">${furmanDarkModeOverrides}<!-- home-mods --><!-- reduce-motion-mods -->`,
+						`<meta charset="utf-8"><style>${furmanOverrides}</style><!-- dark-mode --><!-- home-mods --><!-- reduce-motion-mods -->`,
 					);
+
+					// inject dark mode support via darkreader
+					body = body.replace('<!-- dark-mode -->', furmanDarkModeOverrides);
 
 					// home page style modifications
 					if (requestUrl.pathname === '/shi-institute/new-home/') {

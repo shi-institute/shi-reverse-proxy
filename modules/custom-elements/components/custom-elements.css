@@ -57,4 +57,5 @@
 	src: url('/files/fonts/Epilogue-VariableFont_wght.ttf') format('truetype');
 	font-weight: 100 900;
 	font-style: normal;
+	font-display: swap;
 }

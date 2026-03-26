@@ -1,21 +1,13 @@
 <!-- dark mode support -->
 <style>
-	html {
-		background-color: #212121;
-	}
-	.primary-hero-left-caption::before,
-	.page-banner.tertiary-hero .caption::before,
-	.module-content-block-media-carousel-slider::before {
-		filter: light-dark(unset, invert(80%));
-	}
-	.module-content-block-media-carousel-slider .slick-dots li.slick-active a {
-		--darkreader-text-ffffff: #000;
+	@media (prefers-color-scheme: dark) {
+		/* initially hide the page content while dark reader activates */
+		#app {
+			transition: all var(--shi-transition-250ms) ease;
+			opacity: 0;
+		}
 	}
 </style>
-<script>
-	// hide the page until dark mode is applied to prevent a flash of unstyled content
-	document.documentElement.style.visibility = 'hidden';
-</script>
 <script type="module">
 	import * as DarkReader from 'https://esm.run/darkreader';
 
@@ -33,9 +25,21 @@
 		brightness: 125,
 	});
 
-	document.documentElement.style.visibility = '';
+	const appElement = document.querySelector('#app');
+	if (appElement) {
+		appElement.style.opacity = '1';
+	}
 </script>
 <style>
+	.primary-hero-left-caption::before,
+	.page-banner.tertiary-hero .caption::before,
+	.module-content-block-media-carousel-slider::before {
+		filter: light-dark(unset, invert(80%));
+	}
+	.module-content-block-media-carousel-slider .slick-dots li.slick-active a {
+		--darkreader-text-ffffff: #000;
+	}
+
 	.person-new-designed .tab-content,
 	.person-new-designed .tab-content p,
 	.person-new-designed .tab-content li,
@@ -143,20 +147,5 @@
 	:root .module-content-block-related-degrees-item a:focus-visible {
 		outline: 2px solid black !important;
 		outline-offset: 2px;
-	}
-</style>
-
-<!-- font adjustments -->
-<style>
-	html :is(.person-new-designed .tab-content p, .person-new-designed .tab-content li) {
-		font-family: 'Epilogue', sans-serif;
-		line-height: 1.4;
-	}
-
-	/* headings */
-	html
-		:is(span[style='font-size: 30px;'], span[style='font-size: 30px; font-weight: 400;'], #main-content > .profile .profile-block__name, ) {
-		font-family: 'Oswald', sans-serif !important;
-		font-weight: 500;
 	}
 </style>

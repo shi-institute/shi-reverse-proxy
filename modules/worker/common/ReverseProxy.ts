@@ -9,6 +9,11 @@ interface ReverseProxyOptions {
 	spoofOrigin?: boolean;
 	spoofHost?: boolean;
 	/**
+	 * Whether to inject a sttyle in the head that opts into view transitions for navigation.
+	 * @default true
+	 */
+	injectViewTransition?: boolean;
+	/**
 	 * Runs after the proxy has performed its built-in URL replacements on the response body and
 	 * has applied the string replacements, allowing you to perform any additional custom replacements.
 	 *
@@ -30,6 +35,7 @@ export class ReverseProxy {
 	private removePath: boolean;
 	private spoofOrigin: boolean;
 	private spoofHost: boolean;
+	private injectViewTransition: boolean;
 	private afterBodyReplacements?: ReverseProxyOptions['afterBodyReplacements'];
 
 	constructor({
@@ -39,6 +45,7 @@ export class ReverseProxy {
 		removePath = false,
 		spoofOrigin = true,
 		spoofHost = true,
+		injectViewTransition = true,
 		afterBodyReplacements,
 	}: ReverseProxyOptions) {
 		if (!originServer) {
@@ -59,6 +66,7 @@ export class ReverseProxy {
 		this.removePath = removePath;
 		this.spoofOrigin = spoofOrigin;
 		this.spoofHost = spoofHost;
+		this.injectViewTransition = injectViewTransition;
 		this.afterBodyReplacements = afterBodyReplacements;
 	}
 
@@ -186,6 +194,11 @@ export class ReverseProxy {
 				text = text.replaceAll(escaped(this.proxyOriginServer.pathname + '/'), escaped('/'));
 				text = text.replaceAll(escaped(this.proxyOriginServer.pathname + '?'), escaped('?'));
 				text = text.replaceAll(escaped(this.proxyOriginServer.pathname), escaped(''));
+			}
+
+			if (this.injectViewTransition) {
+				// inject a style that opts into view transitions for navigation
+				text = text.replace('<head>', '<head><style>@view-transition { navigation: auto; }</style>');
 			}
 
 			// also perform any additional string replacements
