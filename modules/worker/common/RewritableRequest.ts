@@ -2,9 +2,11 @@ type AnyRequest = Request;
 
 export class RewritableRequest<Request extends AnyRequest> {
 	private requestRef: { current: Request };
+	originalRequestUrl: URL;
 
 	constructor(request: Request) {
 		this.requestRef = { current: request };
+		this.originalRequestUrl = new URL(request.url);
 	}
 
 	get request() {

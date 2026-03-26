@@ -10,7 +10,7 @@ const SLI_BASE = '/sli';
  * Proxies /sli requests to https://www.sustainsouthcarolina.org/sli.
  */
 export default {
-	async fetch({ request, requestUrl }, env, ctx) {
+	async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
 		if (!requestUrl.pathname.startsWith(SLI_BASE)) {
 			return;
 		}
@@ -39,7 +39,7 @@ export default {
                       <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap" rel="stylesheet">
                       <style>header { display: none; } .header-skip-link { position: fixed; z-index: 1000; transform: translateY(-100%); } .header-skip-link:focus { transform: translateY(0%); }</style>
                       <a href="#page" class="header-skip-link sqs-button-element--primary">Skip to Content</a>
-                      <header class="injected" style="all: unset;">${await getInjectableNavigation(ctx, requestUrl)}</header>
+                      <header class="injected" style="all: unset;">${await getInjectableNavigation(ctx, originalRequestUrl)}</header>
                       $1`,
 					);
 

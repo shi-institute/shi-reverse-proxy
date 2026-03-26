@@ -12,7 +12,7 @@ const SHI_BLOG_BASE = '/jbtest';
  * Proxies all requests to blogs.furman.edu/jbtest.
  */
 export default {
-	async fetch({ request, requestUrl }, env, ctx) {
+	async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
 		const blogProxy = new ReverseProxy({
 			originServer: new URL(`${BLOG_ORIGIN}${SHI_BLOG_BASE}`),
 			notFoundPaths: ['/.well-known/appspecific/com.chrome.devtools.json'],
@@ -26,7 +26,7 @@ export default {
 				'↗': '↗︎',
 
 				// inject our own navigation elements
-				'</header>': `${await getInjectableNavigation(ctx, requestUrl)}</header>`,
+				'</header>': `${await getInjectableNavigation(ctx, originalRequestUrl)}</header>`,
 
 				// hide built-in navigation elements
 				'</head>': '<style>header>div:nth-child(1),header>div:nth-child(2){display:none !important;}</style></head>',

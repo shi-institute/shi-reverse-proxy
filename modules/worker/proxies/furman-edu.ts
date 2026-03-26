@@ -38,7 +38,7 @@ const mandatoryShiInstituteRewrites: Record<string, string> = {
  * furman.edu/shi-institute/new-home while keeping the URL as / in the browser.
  */
 export default {
-	async fetch({ request, requestUrl }, env, ctx) {
+	async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
 		const isShiInstituteRequest =
 			requestUrl.pathname.startsWith(SHI_INSTITUTE_BASE) ||
 			Object.values(mandatoryShiInstituteRewrites).some((alias) => alias === requestUrl.pathname);
@@ -111,7 +111,7 @@ export default {
 					// inject our own navigation elements after the skip link for keyboard users
 					const skipLinkOuterHTML = body.match(/<a\b[^>]*\brole-action\s*=\s*["']skip-link["'][^>]*>[\s\S]*?<\/a>/i)?.[0];
 					if (skipLinkOuterHTML) {
-						body = body.replace(skipLinkOuterHTML, skipLinkOuterHTML + (await getInjectableNavigation(ctx, requestUrl)));
+						body = body.replace(skipLinkOuterHTML, skipLinkOuterHTML + (await getInjectableNavigation(ctx, originalRequestUrl)));
 					}
 
 					// inject CSS overrides
