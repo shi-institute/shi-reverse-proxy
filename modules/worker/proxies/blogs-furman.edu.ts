@@ -16,6 +16,7 @@ export default {
 		const blogProxy = new ReverseProxy({
 			originServer: new URL(`${BLOG_ORIGIN}${SHI_BLOG_BASE}`),
 			notFoundPaths: ['/.well-known/appspecific/com.chrome.devtools.json'],
+			staleWhileRevalidate: 43200, // 12 hours
 			stringReplacements: {
 				'shi.institute/Shibboleth.sso': 'blogs.furman.edu/Shibboleth.sso', // fix login redirect
 				'wpmucdn.com/jbtest': 'wpmucdn.com/blogs.furman.edu',

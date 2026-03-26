@@ -64,6 +64,7 @@ export default {
 
 		const fuProxy = new ReverseProxy({
 			originServer: new URL('https://www.furman.edu/shi-institute'),
+			staleWhileRevalidate: 43200, // 12 hours
 			afterBodyReplacements: async (body, requestUrl, contentType) => {
 				if (contentType.includes('text/html') && typeof body === 'string') {
 					// hide furman.edu navigation elements

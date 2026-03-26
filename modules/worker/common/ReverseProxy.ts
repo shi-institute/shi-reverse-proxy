@@ -14,6 +14,13 @@ interface ReverseProxyOptions {
 	 */
 	injectViewTransition?: boolean;
 	/**
+	 * Includes a stale-while-revalidate directive in the Cache-Control header of the response
+	 * with the specified max age in seconds, allowing browsers and other clients to use a
+	 * stale cached response while they revalidate it in the background. This can help improve
+	 * performance and reduce load on the origin server for resources that don't change frequently.
+	 */
+	staleWhileRevalidate?: number;
+	/**
 	 * Runs after the proxy has performed its built-in URL replacements on the response body and
 	 * has applied the string replacements, allowing you to perform any additional custom replacements.
 	 *
@@ -36,6 +43,7 @@ export class ReverseProxy {
 	private spoofOrigin: boolean;
 	private spoofHost: boolean;
 	private injectViewTransition: boolean;
+	private staleWhileRevalidate?: number;
 	private afterBodyReplacements?: ReverseProxyOptions['afterBodyReplacements'];
 
 	constructor({
@@ -46,6 +54,7 @@ export class ReverseProxy {
 		spoofOrigin = true,
 		spoofHost = true,
 		injectViewTransition = true,
+		staleWhileRevalidate,
 		afterBodyReplacements,
 	}: ReverseProxyOptions) {
 		if (!originServer) {
@@ -67,6 +76,7 @@ export class ReverseProxy {
 		this.spoofOrigin = spoofOrigin;
 		this.spoofHost = spoofHost;
 		this.injectViewTransition = injectViewTransition;
+		this.staleWhileRevalidate = staleWhileRevalidate;
 		this.afterBodyReplacements = afterBodyReplacements;
 	}
 
@@ -151,6 +161,12 @@ export class ReverseProxy {
 		const headers = cloneHeaders(originResponse.headers);
 		headers.set('Link', `<${requestUrl.href}>; rel="canonical"`);
 		headers.set('Content-Security-Policy', 'upgrade-insecure-requests');
+		if (this.staleWhileRevalidate !== undefined) {
+			const cacheControl = headers.get('Cache-Control');
+			const directives = cacheControl ? cacheControl.split(',').map((dir) => dir.trim()) : [];
+			directives.push(`stale-while-revalidate=${this.staleWhileRevalidate}`);
+			headers.set('Cache-Control', directives.join(', '));
+		}
 		return new Response(body, {
 			status: originResponse.status,
 			headers,
