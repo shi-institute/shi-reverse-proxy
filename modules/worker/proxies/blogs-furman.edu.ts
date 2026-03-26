@@ -26,7 +26,19 @@ export default {
 				'↗': '↗︎',
 
 				// inject our own navigation elements
-				'</header>': `${await getInjectableNavigation(ctx, originalRequestUrl)}</header>`,
+				'</header>': `<style>
+						/* hide the old menus */
+						header > div:nth-child(1),
+						header > div:nth-child(2) {
+							display: none;
+						}
+						/* stop WordPress from adding margin before our menu items */
+						header > * {
+							margin: 0 !important;
+						}
+					</style>
+					${await getInjectableNavigation(ctx, originalRequestUrl)}
+				</header>`,
 
 				// hide built-in navigation elements
 				'</head>': '<style>header>div:nth-child(1),header>div:nth-child(2){display:none !important;}</style></head>',

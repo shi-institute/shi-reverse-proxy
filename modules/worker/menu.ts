@@ -145,18 +145,6 @@ export async function getInjectableNavigation(ctx: ExecutionContext<{ adminBarHr
 		${await secondaryMenuBarHtml}
 		${await primaryMenuBarHtml}
 		<script src="/custom-elements.js" type="module"></script>
-		<style>
-			/* hide the old menus */
-			header > div:nth-child(1),
-			header > div:nth-child(2) {
-				display: none;
-			}
-
-			/* stop WordPress from adding margin before our menu items */
-			header > * {
-				margin: 0 !important;
-			}
-		</style>
 		<script type="module">
 			// on Alt + Shift + E, launch the WordPress editor for current page or post if it exists
 			window.addEventListener('keydown', async (event) => {
