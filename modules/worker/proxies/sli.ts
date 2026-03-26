@@ -3,7 +3,7 @@ import { ReverseProxy } from '../common/ReverseProxy';
 import { getFooterHTML } from '../footer';
 import { getInjectableNavigation } from '../menu';
 
-const SUSTAIN_SC_ORIGIN = 'https://www.sustainsouthcarolina.org/';
+const SUSTAIN_SC_ORIGIN = 'https://www.sustainsouthcarolina.org';
 const SLI_BASE = '/sli';
 
 /**
@@ -40,6 +40,39 @@ export default {
 							}
 						</style></head>`,
 					);
+
+					// Replace all relative paths (href="/something") with absolute paths (href="https://www.sustainsouthcarolina.org/something")
+					body = body.replace(/(href|src|srcset)=["']\/([^"']*)["']/g, (match, attr, value) => {
+						if (attr === 'srcset' && typeof value === 'string') {
+							// handle comma-separated list in srcset
+							const updatedSrcset = value
+								.split(',')
+								.map((item) => {
+									const parts = item.trim().split(' ');
+									// If it does not already look like an absolute URL, prepend the furman.edu origin
+									if (parts[0]?.startsWith('/')) {
+										parts[0] = `${SUSTAIN_SC_ORIGIN}}${parts[0]}`;
+									} else if (!parts[0]?.startsWith('http')) {
+										parts[0] = `${SUSTAIN_SC_ORIGIN}/${parts[0]}`;
+									}
+									return parts.join(' ');
+								})
+								.join(', ');
+
+							return `${attr}="${updatedSrcset}"`;
+						}
+
+						return `${attr}="${SUSTAIN_SC_ORIGIN}/${value}"`;
+					});
+
+					// Make all hyperlinks open in a new tab with noopener and noreferrer
+					body = body.replace(/<a\s+([^>]*?)>/g, (match, attributes) => {
+						// If the link already has a target attribute, we won't modify it
+						if (/target=/.test(attributes)) {
+							return match;
+						}
+						return `<a ${attributes} target="_blank" rel="noopener noreferrer">`;
+					});
 
 					// inject our own navigation elements
 					body = body.replace(
