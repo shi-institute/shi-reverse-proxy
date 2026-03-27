@@ -29,8 +29,7 @@ export default {
 				// inject our own navigation elements
 				'</header>': `<style>
 						/* hide the old menus */
-						header > div:nth-child(1),
-						header > div:nth-child(2) {
+						header > div:has(nav) {
 							display: none;
 						}
 						/* stop WordPress from adding margin before our menu items */
