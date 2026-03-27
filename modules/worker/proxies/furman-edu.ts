@@ -6,25 +6,12 @@ import type { ReverseProxyHandler } from '../common/Handler';
 import { ReverseProxy } from '../common/ReverseProxy';
 import { getFooterHTML } from '../footer';
 import { getInjectableNavigation } from '../menu';
+import { rewrites } from '../redirects';
 
 const FURMAN_EDU_ORIGIN = 'https://www.furman.edu';
 const SHI_INSTITUTE_BASE = '/shi-institute';
 const FURMAN_THEME_ASSETS_BASE = '/wp-content/themes/furman';
 const PEOPLE_BASE = '/people';
-
-// Specified madatory aliases for paths. If the browser navigates to
-// the original path (object keys), it will be redirected to the alias
-// (object value). If the browser navigates to the alias, it will be
-// internally rewritten to the original path so that it can be properly
-// proxied to furman.edu. The end result is that users will see the alias
-// in the browser, but the content will be served from the original path
-// on furman.edu.
-const mandatoryShiInstituteRewrites: Record<string, string> = {
-	'/shi-institute/new-home/': '/', // replace home page with furman.edu/shi-institute
-	'/shi-institute/sustainability/student-experiences/': '/students/',
-	'/shi-institute/sustainability/student-fellows/': '/students/fellowships/',
-	'/shi-institute/sustainability/community-conservation-corps/': '/community-conservation-corps/',
-};
 
 /**
  * Proxies all requests for the following:
@@ -39,9 +26,7 @@ const mandatoryShiInstituteRewrites: Record<string, string> = {
  */
 export default {
 	async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
-		const isShiInstituteRequest =
-			requestUrl.pathname.startsWith(SHI_INSTITUTE_BASE) ||
-			Object.values(mandatoryShiInstituteRewrites).some((alias) => alias === requestUrl.pathname);
+		const isShiInstituteRequest = requestUrl.pathname.startsWith(SHI_INSTITUTE_BASE);
 		const isFurmanThemeAssetsRequest = requestUrl.pathname.startsWith(FURMAN_THEME_ASSETS_BASE);
 		const isPeopleRequest = requestUrl.pathname.startsWith(PEOPLE_BASE);
 		if (!isShiInstituteRequest && !isFurmanThemeAssetsRequest && !isPeopleRequest) {
@@ -101,8 +86,8 @@ export default {
 
 					// Replace all relative link paths that correspond to an alias with the alias.
 					body = body.replaceAll(new RegExp(`\\bhref\\s*=\\s*["'](\\/[^"']*)["']`, 'gi'), (match, originalHref, value) => {
-						if (Object.keys(mandatoryShiInstituteRewrites).includes(originalHref)) {
-							const aliasPath = mandatoryShiInstituteRewrites[originalHref];
+						if (Object.keys(rewrites).includes(originalHref)) {
+							const aliasPath = rewrites[originalHref];
 							return `href="${aliasPath}"`;
 						}
 

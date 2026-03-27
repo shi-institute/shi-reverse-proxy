@@ -6,11 +6,7 @@ import * as proxies from './proxies';
 import { redirects, rewrites } from './redirects';
 
 export default {
-	async fetch(
-		_request: Request<unknown, IncomingRequestCfProperties<unknown>>,
-		env: Env,
-		ctx: ExecutionContext<{ adminBarHref?: string }>,
-	): Promise<Response> {
+	async fetch(_request, env, ctx): Promise<Response> {
 		try {
 			const rr = new RewritableRequest(_request);
 			const { request, requestUrl } = rr;
@@ -34,9 +30,13 @@ export default {
 			// if the current path is an alias, rewrite it to the original path so that
 			// it can be properly handled by the reverse proxies
 			if (Object.values(rewrites).includes(requestUrl.pathname)) {
-				const originalPathname = Object.keys(rewrites).find((key) => rewrites[key] === requestUrl.pathname);
-				if (originalPathname) {
-					requestUrl.pathname = originalPathname;
+				const realPathname = Object.keys(rewrites).find((key) => rewrites[key] === requestUrl.pathname);
+
+				// skip rewriting home page URL when it is a search page (has a ?s in the url)
+				const shouldSkipRewrite = requestUrl.pathname === '/' && !!requestUrl.searchParams.toString();
+
+				if (realPathname && !shouldSkipRewrite) {
+					requestUrl.pathname = realPathname;
 				}
 			}
 
@@ -53,7 +53,7 @@ export default {
 			proxyQueue.enqueue(proxies.sli);
 			proxyQueue.enqueue(proxies.blogsFurmanEdu);
 
-			const proxiedResponse = await proxyQueue.flush(rr, env, ctx);
+			const proxiedResponse = await proxyQueue.flush(rr, env, ctx as ExecutionContext<{ adminBarHref?: string }>);
 			if (proxiedResponse) {
 				return proxiedResponse;
 			} else {
@@ -77,7 +77,10 @@ export default {
 			});
 		}
 	},
-};
+	async scheduled(_event, env, ctx) {
+		// every minute, check WordPress for any updates to the blog posts and pages so that we can update our cache accordingly
+	},
+} satisfies ExportedHandler<Env>;
 
 // Replaces fetch with a modified fetch. In any context where
 // fetchStorage.run() has been called, the first argument to
