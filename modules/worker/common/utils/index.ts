@@ -1,0 +1,1 @@
+export { replaceAliasPaths } from './replaceAliasPaths';

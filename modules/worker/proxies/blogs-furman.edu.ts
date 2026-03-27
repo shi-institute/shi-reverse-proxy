@@ -3,6 +3,7 @@ import { prepareFetchWithSelf } from '..';
 import { renderCustomElements } from '../../custom-elements/server';
 import type { ReverseProxyHandler } from '../common/Handler';
 import { ReverseProxy } from '../common/ReverseProxy';
+import { replaceAliasPaths } from '../common/utils';
 import { getInjectableNavigation } from '../menu';
 
 const BLOG_ORIGIN = 'https://blogs.furman.edu';
@@ -52,6 +53,8 @@ export default {
 				if (!contentType.includes('text/html') || typeof body !== 'string') {
 					return;
 				}
+
+				body = replaceAliasPaths(body);
 
 				// Render custom elements (e.g. shi-post-card or shi-post-card-grid) on the server to HTML,
 				// ensuring that the content is visible immediately on document download and that it can

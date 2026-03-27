@@ -4,6 +4,7 @@ import furmanOverrides from '../../static/furman-edu-overrides.css';
 import furmanVideoPrefersReducedMotionSupport from '../../static/furman-edu-video-reduce-motion-support.html';
 import type { ReverseProxyHandler } from '../common/Handler';
 import { ReverseProxy } from '../common/ReverseProxy';
+import { replaceAliasPaths } from '../common/utils';
 import { getFooterHTML } from '../footer';
 import { getInjectableNavigation } from '../menu';
 import { rewrites } from '../redirects';
@@ -136,15 +137,7 @@ export default {
 						return `${attr}="https://www.furman.edu/${value}"`;
 					});
 
-					// Replace all relative link paths that correspond to an alias with the alias.
-					body = body.replaceAll(new RegExp(`\\bhref\\s*=\\s*["'](\\/[^"']*)["']`, 'gi'), (match, originalHref, value) => {
-						if (Object.keys(rewrites).includes(originalHref)) {
-							const aliasPath = rewrites[originalHref];
-							return `href="${aliasPath}"`;
-						}
-
-						return match;
-					});
+					body = replaceAliasPaths(body);
 
 					// inject our own navigation elements after the skip link for keyboard users
 					const skipLinkOuterHTML = body.match(/<a\b[^>]*\brole-action\s*=\s*["']skip-link["'][^>]*>[\s\S]*?<\/a>/i)?.[0];
