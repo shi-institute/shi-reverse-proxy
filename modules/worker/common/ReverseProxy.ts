@@ -1,3 +1,4 @@
+import { createContext } from 'svelte';
 import type { ReverseProxyHandler } from './Handler';
 import type { RewritableRequest } from './RewritableRequest';
 
@@ -13,13 +14,6 @@ interface ReverseProxyOptions {
 	 * @default true
 	 */
 	injectViewTransition?: boolean;
-	/**
-	 * Includes a stale-while-revalidate directive in the Cache-Control header of the response
-	 * with the specified max age in seconds, allowing browsers and other clients to use a
-	 * stale cached response while they revalidate it in the background. This can help improve
-	 * performance and reduce load on the origin server for resources that don't change frequently.
-	 */
-	staleWhileRevalidate?: number;
 	/**
 	 * Runs after the proxy has performed its built-in URL replacements on the response body and
 	 * has applied the string replacements, allowing you to perform any additional custom replacements.
@@ -43,7 +37,6 @@ export class ReverseProxy {
 	private spoofOrigin: boolean;
 	private spoofHost: boolean;
 	private injectViewTransition: boolean;
-	private staleWhileRevalidate?: number;
 	private afterBodyReplacements?: ReverseProxyOptions['afterBodyReplacements'];
 
 	constructor({
@@ -54,7 +47,6 @@ export class ReverseProxy {
 		spoofOrigin = true,
 		spoofHost = true,
 		injectViewTransition = true,
-		staleWhileRevalidate,
 		afterBodyReplacements,
 	}: ReverseProxyOptions) {
 		if (!originServer) {
@@ -76,7 +68,6 @@ export class ReverseProxy {
 		this.spoofOrigin = spoofOrigin;
 		this.spoofHost = spoofHost;
 		this.injectViewTransition = injectViewTransition;
-		this.staleWhileRevalidate = staleWhileRevalidate;
 		this.afterBodyReplacements = afterBodyReplacements;
 	}
 
@@ -161,17 +152,87 @@ export class ReverseProxy {
 		const headers = cloneHeaders(originResponse.headers);
 		headers.set('Link', `<${requestUrl.href}>; rel="canonical"`);
 		headers.set('Content-Security-Policy', 'upgrade-insecure-requests');
-		if (this.staleWhileRevalidate !== undefined) {
-			const cacheControl = headers.get('Cache-Control');
-			const directives = cacheControl ? cacheControl.split(',').map((dir) => dir.trim()) : [];
-			directives.push(`stale-while-revalidate=${this.staleWhileRevalidate}`);
-			headers.set('Cache-Control', directives.join(', '));
-		}
 		return new Response(body, {
 			status: originResponse.status,
 			headers,
 			statusText: originResponse.statusText,
 		});
+	}
+
+	/**
+	 * Fetches the resource from the origin server, applying stale-while-revalidate caching with the specified max age.
+	 * If a cached response is available and not stale, it is returned immediately while a revalidation request is made
+	 * in the background to update the cache. If no cached response is available or if the cached response is stale, a
+	 * request is made to the origin server, the response is sent to the client, and then the response is cached for
+	 * future use.
+	 *
+	 * `maxStaleAge` is the the maximum age in seconds that a cached stale response can be used while revalidating in the background.
+	 * The default value is 43200 seconds (12 hours), which means that if a cached response is up to 12 hours old,
+	 * it can be returned immediately while a revalidation request is made in the background to update the cache
+	 * If the cached response is older than 12 hours, it will be considered stale, and a request will be made to
+	 * the origin server to fetch a fresh response before returning it to the client.
+	 */
+	async fetchStaleWhileRevalidate<Props>(request: Request, ctx: ExecutionContext<Props>, { maxStaleAge = 43200 } = {}): Promise<Response> {
+		const requestUrl = new URL(request.url);
+		const cacheKey = new Request(requestUrl);
+		const cache = await caches.open('reverse-proxy-cache--' + this.proxyOriginServer.href);
+
+		const responseWithInjectedCacheControl = async (response: Response) => {
+			const clonedResponse = response.clone();
+			const headers = cloneHeaders(clonedResponse.headers);
+
+			const cacheControl = headers.get('Cache-Control');
+			const directives = cacheControl ? cacheControl.split(',').map((dir) => dir.trim()) : [];
+			directives.push(`s-maxage=${maxStaleAge}`);
+			headers.set('Cache-Control', directives.join(', '));
+
+			let body = await clonedResponse.arrayBuffer();
+			if (headers.get('Content-Encoding') === 'gzip') {
+				// Processing the body to an array buffer causes the gzip encoding to be lost.
+				// Cloudflare will re-encode to gzip when it serves the cached response, but in
+				// the cached response, we need to remove the Content-Encoding header to prevent
+				// double gzip encoding.
+				headers.delete('Content-Encoding');
+			}
+
+			return new Response(body, {
+				status: clonedResponse.status,
+				statusText: clonedResponse.statusText,
+				headers: headers,
+			});
+		};
+
+		const cached = await cache.match(cacheKey);
+		const cachedResponseIsAllowed = request.headers.get('Cache-Control') !== 'no-cache';
+		if (cached && cachedResponseIsAllowed) {
+			if (process.env.DEVELOPMENT) {
+				console.debug(`Cache hit for ${requestUrl.href}`);
+			}
+
+			// start to refresh the cache in the background
+			ctx.waitUntil(
+				(async () => {
+					const newResponse = await this.fetch(request);
+					if (newResponse.ok) {
+						if (process.env.DEVELOPMENT) {
+							console.debug(`Updating cache for ${requestUrl.href}`);
+						}
+						await cache.put(cacheKey, await responseWithInjectedCacheControl(newResponse));
+					}
+				})(),
+			);
+
+			return cached;
+		}
+
+		const response = await this.fetch(request);
+
+		// if the response is successful, store it in the cache for future use
+		if (response.ok) {
+			ctx.waitUntil(cache.put(cacheKey, await responseWithInjectedCacheControl(response)));
+		}
+
+		return response;
 	}
 
 	/**

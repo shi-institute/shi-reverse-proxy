@@ -102,7 +102,6 @@ export default {
 
 		const fuProxy = new ReverseProxy({
 			originServer: new URL('https://www.furman.edu/shi-institute'),
-			staleWhileRevalidate: 43200, // 12 hours
 			afterBodyReplacements: async (body, requestUrl, contentType) => {
 				if (contentType.includes('text/html') && typeof body === 'string') {
 					// hide furman.edu navigation elements
@@ -181,7 +180,7 @@ export default {
 		});
 
 		// Since we want to use our main 404 page, we do not use 404 pages from furman.edu.
-		const proxyResponse = await fuProxy.fetch(request.current);
+		const proxyResponse = await fuProxy.fetchStaleWhileRevalidate(request.current, ctx, { maxStaleAge: 43200 }); // 12 hours
 		if (proxyResponse.status !== 404) {
 			return proxyResponse;
 		}
