@@ -13,6 +13,8 @@ const SHI_INSTITUTE_BASE = '/shi-institute';
 const FURMAN_THEME_ASSETS_BASE = '/wp-content/themes/furman';
 const PEOPLE_BASE = '/people';
 
+const approvedPersonTypes = ['staff', 'affiliates', 'fellows'];
+
 /**
  * Proxies all requests for the following:
  *
@@ -28,7 +30,7 @@ export default {
 	async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
 		const isShiInstituteRequest = requestUrl.pathname.startsWith(SHI_INSTITUTE_BASE);
 		const isFurmanThemeAssetsRequest = requestUrl.pathname.startsWith(FURMAN_THEME_ASSETS_BASE);
-		const isPeopleRequest = requestUrl.pathname.startsWith(PEOPLE_BASE);
+		const isPeopleRequest = requestUrl.pathname.startsWith(PEOPLE_BASE) && requestUrl.pathname.split('/').length >= 3; // only match /
 		if (!isShiInstituteRequest && !isFurmanThemeAssetsRequest && !isPeopleRequest) {
 			return;
 		}
@@ -36,8 +38,58 @@ export default {
 		// re-write the request URL to point to furman.edu/people/{slug} when it is a person page
 		let personType: string | null = null;
 		if (isPeopleRequest) {
-			personType = requestUrl.pathname.split('/')[2] ?? null;
-			requestUrl.pathname = requestUrl.pathname.replace(`/people/${personType}/`, '/people/');
+			const parts = requestUrl.pathname.split('/');
+
+			// only accept /people/{personType}/{slug}/ and /people/{slug}/, but not /people/ or /people/{personType}/
+			if (parts.length < 4) {
+				if (process.env.DEVELOPMENT) {
+					console.debug(`Rejecting request to ${requestUrl.pathname} because it does not have enough parts to be a valid person page`);
+				}
+				return;
+			}
+
+			// structure is /people/{slug}/
+			if (parts.length === 4) {
+				const slug = parts[2];
+
+				if (!slug) {
+					if (process.env.DEVELOPMENT) {
+						console.debug('slug is empty:', { slug, requestUrl });
+					}
+					return;
+				}
+
+				// block slugs that are actually a person type
+				if (approvedPersonTypes.includes(slug)) {
+					if (process.env.DEVELOPMENT) {
+						console.debug(
+							`Rejecting request to ${requestUrl.pathname} because the slug is actually a person type, which is not allowed in the URL structure without a person type`,
+						);
+					}
+					return;
+				}
+			}
+
+			// structure is /people/{personType}/{slug}
+			if (parts.length === 5) {
+				const foundPersonType = requestUrl.pathname.split('/')[2] ?? null;
+				if (foundPersonType && approvedPersonTypes.includes(foundPersonType)) {
+					personType = foundPersonType;
+					requestUrl.pathname = requestUrl.pathname.replace(`/people/${personType}/`, '/people/');
+				} else {
+					if (process.env.DEVELOPMENT) {
+						console.debug(`Rejecting request to ${requestUrl.pathname} because it has an invalid person type`);
+					}
+					return;
+				}
+			}
+
+			if (parts.length > 5) {
+				if (process.env.DEVELOPMENT) {
+					console.debug(`Rejecting request to ${requestUrl.pathname} because it has too many parts to be a valid person page`);
+				}
+				return;
+			}
 		}
 
 		// redirect requests for uploaded files instead of proxying
