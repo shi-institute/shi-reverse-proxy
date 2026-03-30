@@ -32,7 +32,6 @@ export async function render<N extends ComponentName>(
 	globals: Partial<Globals> = {},
 ) {
 	const component = components[componentName] as Component<any>;
-	const uuid = crypto.randomUUID();
 
 	if (!globals.url) {
 		console.warn(
@@ -57,28 +56,41 @@ export async function render<N extends ComponentName>(
 
 	const { body, hashes, head } = renderOutput;
 	const tag = pascalCaseToKebabCase(CUSTOM_ELEMENT_NAMESPACE + component.name);
+
+	// generate the server-rendered HTML for the custom element
+	const attributesString = Object.entries(options.attributes || {})
+		.map(([key, value]) => ` ${key}="${value}"`)
+		.join('');
+	let renderedHtml = `<${tag} ${attributesString}><template shadowrootmode="open">${head}${body}</template>${options.slotHTML || ''}</${tag}>`;
+
+	// hash the rendered HTML to create a deterministic ID that can be used to identify the rendered HTML
+	const renderedHtmlHash = uint8ToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(renderedHtml))));
+
+	// insert hash as a data attribute to the rendered HTML
+	renderedHtml = renderedHtml.replace(`<${tag} `, `<${tag} data-hydrate-id="${renderedHtmlHash}" `);
+
+	// create a script tag containing the props data with a data-for attribute
+	// that references the hash of the rendered HTML, so that the client-side
+	// hydration script can find the corresponding props for each server-rendered
+	// custom element
 	const data =
-		`<script type="application/json" data-hydration-pack data-for="${uuid}">` +
+		`<script type="application/json" data-hydration-pack data-for="${renderedHtmlHash}">` +
 		unevalProps(options?.props || {}).replace(/</g, '\\u003c') +
 		'</script>';
 
-	const attributes = {
-		...(options.attributes || {}),
-		'data-hydrate-id': uuid,
-	};
-	const attributesString = Object.entries(attributes)
-		.map(([key, value]) => ` ${key}="${value}"`)
-		.join('');
-
-	const returnValue = new String(
-		`${data}<${tag} ${attributesString}><template shadowrootmode="open">${head}${body}</template>${options.slotHTML || ''}</${tag}>`,
-	);
+	const returnValue = new String(`${data}${renderedHtml}`);
 	Object.defineProperty(returnValue, 'hashes', { value: hashes });
 	Object.defineProperty(returnValue, 'head', { value: head });
 	Object.defineProperty(returnValue, 'rawBody', { value: body });
 	Object.defineProperty(returnValue, 'tag', { value: tag });
 	Object.defineProperty(returnValue, 'data', { value: data });
 	return returnValue as string & { hashes: typeof hashes; head: typeof head; rawBody: typeof body; tag: typeof tag; data: typeof data };
+}
+
+function uint8ToHex(bytes: Uint8Array): string {
+	return Array.from(bytes)
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
 }
 
 function unevalProps(props: Record<string, unknown>) {
