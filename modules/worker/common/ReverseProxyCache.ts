@@ -170,18 +170,19 @@ export class ReverseProxyCache<Props> {
 		{ useKv = this.options.useKV, useEdge = true } = {},
 	): Promise<ReverseProxyCacheMatchResult> {
 		const requestUrl = new URL(request.url);
+		const startTime = new Date();
 
 		if (requestUrl.pathname.startsWith('/.well-known/')) {
 			return {
 				type: 'MISS',
-				headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'MISS', 'Pathname starts with /.well-known/'),
+				headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'MISS', 'Pathname starts with /.well-known/', startTime),
 			};
 		}
 
 		const shouldBypassCache = request.headers.get('Cache-Control')?.includes('no-cache') || request.headers.get('Pragma') === 'no-cache';
 		if (shouldBypassCache) {
 			console.debug(`Bypassing cache for ${requestUrl} due to no-cache directive in request headers`);
-			return { type: 'BYPASS', headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'BYPASS', 'no-cache directive') };
+			return { type: 'BYPASS', headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'BYPASS', 'no-cache directive', startTime) };
 		}
 
 		if (useEdge) {
@@ -195,7 +196,7 @@ export class ReverseProxyCache<Props> {
 					headers: new Headers(edgeCacheResponse.headers),
 				});
 
-				ReverseProxyCache.prepareHeaders(response.headers, 'HIT');
+				ReverseProxyCache.prepareHeaders(response.headers, 'HIT', undefined, startTime);
 				response.headers.set('X-Cache-Source', 'Edge');
 				return { response, type: 'HIT' };
 			}
@@ -205,7 +206,7 @@ export class ReverseProxyCache<Props> {
 			const kvCacheResponse = await this.readFromKvCache(request);
 			console.debug(`Cache lookup for ${requestUrl}: ${kvCacheResponse ? 'HIT' : 'MISS'} in KV cache`);
 			if (kvCacheResponse) {
-				ReverseProxyCache.prepareHeaders(kvCacheResponse.headers, 'HIT');
+				ReverseProxyCache.prepareHeaders(kvCacheResponse.headers, 'HIT', undefined, startTime);
 				kvCacheResponse.headers.set('X-Cache-Source', 'KV');
 
 				// store the response in the edge cache for faster access next time
@@ -215,7 +216,7 @@ export class ReverseProxyCache<Props> {
 			}
 		}
 
-		return { type: 'MISS', headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'MISS') };
+		return { type: 'MISS', headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'MISS', undefined, startTime) };
 	}
 
 	/**
@@ -349,7 +350,7 @@ export class ReverseProxyCache<Props> {
 	 *
 	 * **This method is in-place.**
 	 */
-	private static prepareHeaders(headers: Headers, cache: 'HIT' | 'BYPASS' | 'MISS', reason?: string) {
+	private static prepareHeaders(headers: Headers, cache: 'HIT' | 'BYPASS' | 'MISS', reason?: string, startTime?: Date) {
 		headers.set('Date', new Date().toUTCString());
 
 		// remove existing X-Cache headers
@@ -368,6 +369,14 @@ export class ReverseProxyCache<Props> {
 			} else {
 				headers.set('X-Cache-Note', reason);
 			}
+		}
+
+		if (startTime) {
+			const duration = Date.now() - startTime.getTime();
+
+			const timeString = duration < 1000 ? `${duration}ms` : `${(duration / 1000).toFixed(2)}s`;
+
+			headers.set('X-Cache-Lookup-Duration', timeString);
 		}
 
 		return headers;
