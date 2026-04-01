@@ -94,21 +94,25 @@ const headersFile = `/custom-elements.js
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Access-Control-Allow-Headers: *
+	Cache-Control: stale-while-revalidate=31536000, public, max-age=0
 
 /custom-elements.js.map
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Access-Control-Allow-Headers: *
+	Cache-Control: stale-while-revalidate=31536000, public, max-age=0
 
 /custom-elements.css
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Access-Control-Allow-Headers: *
+	Cache-Control: stale-while-revalidate=31536000, public, max-age=0
 
 /static/*
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Access-Control-Allow-Headers: *
+	Cache-Control: stale-while-revalidate=31536000, public, max-age=0
 `;
 await writeFile('./dist/.cloudflare/public/_headers', headersFile);
 
