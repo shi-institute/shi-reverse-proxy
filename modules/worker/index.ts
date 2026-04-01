@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import handleApiRequest from './api';
+import handleApiRequest, { getModifiedPostsSince } from './api';
 import { ReverseProxyHandlerQueue } from './common/ReverseProxy';
 import { RewritableRequest } from './common/RewritableRequest';
 import * as proxies from './proxies';
@@ -7,13 +7,24 @@ import { redirects, rewrites } from './redirects';
 
 export default {
 	async fetch(_request, env, ctx): Promise<Response> {
+		// const LAST_DAY = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+		// const modifiedPosts = await getModifiedPostsSince('https://blogs.furman.edu/jbtest', LAST_DAY);
+		// for (const post of modifiedPosts) {
+		// 	console.log(`Post modified since ${LAST_DAY}: ${post.link}`);
+
+		// 	// revalidate the cache for the modified post's URL by making a request to the URL with a cache-busting query parameter
+		// 	proxies.blogsFurmanEdu.fetch(new Request(`${post.link}?cache-bust=${Date.now()}`), env, ctx);
+		// }
+
+		// console.log(modifiedPosts);
+
 		try {
 			const rr = new RewritableRequest(_request);
 			const { request, requestUrl } = rr;
 
 			// redirect all origins to shi.institute when in a production deployment
-			if (env.PRODUCTION && requestUrl.hostname !== 'shi.institute') {
-				return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, 'https://shi.institute'), 307);
+			if (env.PRODUCTION && requestUrl.origin !== env.ORIGIN) {
+				return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, env.ORIGIN), 307);
 			}
 
 			// if there is a redirect for the current path, follow it
@@ -77,8 +88,59 @@ export default {
 			});
 		}
 	},
-	async scheduled(_event, env, ctx) {
-		// every minute, check WordPress for any updates to the blog posts and pages so that we can update our cache accordingly
+	async scheduled(_event, env, _ctx) {
+		const ctx = _ctx as ExecutionContext<{ adminBarHref?: string | undefined }>;
+
+		if (!env.ORIGIN) {
+			console.error('ORIGIN environment variable is not set. Scheduled event cannot run without ORIGIN.');
+			return;
+		}
+
+		// re-cache the website every 4 hours
+		// TODO: Find a way to handle the random IDs that furman.edu injects into the HTML for some components.
+		// TODO: Until then, we cannot globally refresh the cache because we cannot use the key-value store
+		// TODO: until we find a way to ignore the random IDs when checking if the page has changed. Otherwise,
+		// TODO: we would quickly exceed the daily KV write limit.
+		if (_event.cron === '0 */4 * * *') {
+			const DATE_1980 = new Date('1980-01-01').toISOString();
+			const allBlogPosts = await getModifiedPostsSince('https://blogs.furman.edu/jbtest', DATE_1980);
+			const allFurmanEduPosts = [] as typeof allBlogPosts;
+			// const allFurmanEduPosts = await getModifiedPostsSince('https://www.furman.edu/shi-institute', DATE_1980);
+			console.debug(`Re-caching ${allBlogPosts.length + allFurmanEduPosts.length} posts by fetching them with cache-busting headers...`);
+			await runBatchedPromises(allBlogPosts, 10, async (post) => {
+				const url = new URL(post.link, env.ORIGIN);
+				const rr = new RewritableRequest(
+					new Request(url, { headers: { 'Cache-Control': 'no-cache' } }) as Request<unknown, IncomingRequestCfProperties<unknown>>,
+				);
+				await proxies.blogsFurmanEdu.fetch(rr, env, ctx);
+			});
+			// await runBatchedPromises(allFurmanEduPosts, 10, async (post) => {
+			// 	const url = new URL('/shi-institute' + post.link, env.ORIGIN);
+			// 	const rr = new RewritableRequest(new Request(url, { headers: { 'Cache-Control': 'no-cache' } }));
+			// 	await proxies.furmanEdu.fetch(rr, env, ctx);
+			// });
+		}
+
+		// refresh the cache for recently modified posts every minute
+		if (_event.cron === '* * * * *') {
+			const NINETY_SECONDS_AGO = new Date(Date.now() - 90 * 1000).toISOString(); // include small time overlap
+			const modifiedBlogPosts = await getModifiedPostsSince('https://blogs.furman.edu/jbtest', NINETY_SECONDS_AGO);
+			const modifiedFurmanEduPosts = [] as typeof modifiedBlogPosts;
+			// const modifiedFurmanEduPosts = await getModifiedPostsSince('https://www.furman.edu/shi-institute', NINETY_SECONDS_AGO);
+			for (const post of [...modifiedBlogPosts, ...modifiedFurmanEduPosts]) {
+				console.debug(`Re-caching post modified since ${NINETY_SECONDS_AGO}: ${post.link}`);
+			}
+			await runBatchedPromises(modifiedBlogPosts, 10, async (post) => {
+				const url = new URL(post.link, env.ORIGIN);
+				const rr = new RewritableRequest(new Request(url) as Request<unknown, IncomingRequestCfProperties<unknown>>);
+				await proxies.blogsFurmanEdu.fetch(rr, env, ctx);
+			});
+			// await runBatchedPromises(modifiedFurmanEduPosts, 10, async (post) => {
+			// 	const url = new URL('/shi-institute' + post.link, env.ORIGIN);
+			// 	const rr = new RewritableRequest(new Request(url, { headers: { 'Cache-Control': 'no-cache' } }));
+			// 	await proxies.furmanEdu.fetch(rr, env, ctx);
+			// });
+		}
 	},
 } satisfies ExportedHandler<Env>;
 
@@ -121,4 +183,39 @@ export function prepareFetchWithSelf(env: Env, requestUrl: URL) {
 		}
 		return originalFetch(input, init);
 	}) satisfies typeof fetch;
+}
+
+async function runBatchedPromises<T>(items: T[], batchSize: number, fn: (item: T) => Promise<void>): Promise<void> {
+	return await new Promise((resolve, reject) => {
+		let index = 0;
+		let activePromises = 0;
+
+		function runNext() {
+			while (activePromises < batchSize && index < items.length) {
+				const item = items[index++];
+				if (!item) {
+					continue;
+				}
+
+				activePromises++;
+				fn(item)
+					.then(() => {
+						activePromises--;
+						runNext();
+					})
+					.catch(reject);
+			}
+
+			if (index >= items.length && activePromises === 0) {
+				resolve();
+			}
+		}
+
+		runNext();
+	});
+}
+
+// Only show console.debug messages in development environment
+if (process.env.NODE_ENV !== 'development') {
+	console.debug = () => {};
 }

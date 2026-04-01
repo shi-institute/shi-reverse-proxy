@@ -179,8 +179,18 @@ export default {
 			},
 		});
 
+		const proxyResponse = await fuProxy.fetchStaleWhileRevalidate(request.current, ctx, {
+			maxStaleAge: 43200, // 12 hours
+			cacheOptions: {
+				// false because Furman's website has randomly generated IDs in the HTML that
+				// change on every request and cause cache misses. It would quickly use up the
+				// limited amount of daily KV writes. The edge cache will still be in use.
+				useKV: false,
+				neverExpireKV: false,
+			},
+		});
+
 		// Since we want to use our main 404 page, we do not use 404 pages from furman.edu.
-		const proxyResponse = await fuProxy.fetchStaleWhileRevalidate(request.current, ctx, { maxStaleAge: 43200 }); // 12 hours
 		if (proxyResponse.status !== 404) {
 			return proxyResponse;
 		}

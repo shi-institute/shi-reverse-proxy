@@ -1,5 +1,6 @@
-import { createContext } from 'svelte';
+import 'core-js/proposals/array-buffer-base64';
 import type { ReverseProxyHandler } from './Handler';
+import { ReverseProxyCache, type ReverseProxyCacheOptions } from './ReverseProxyCache';
 import type { RewritableRequest } from './RewritableRequest';
 
 interface ReverseProxyOptions {
@@ -91,8 +92,15 @@ export class ReverseProxy {
 		if (this.spoofHost) {
 			requestHeaders.set('Host', this.proxyOriginServer.host);
 		}
-		if (request.headers.get('Cache-Control') === 'no-cache') {
-			originUrl.searchParams.set('_cache-bust', Date.now().toString());
+
+		// We always want the latest version of the resource from the origin server.
+		// Cloudflare will handle cahcing on the worker side.
+		originUrl.searchParams.set('_cache-bust', Date.now().toString());
+		requestHeaders.set('Cache-Control', 'no-cache');
+		requestHeaders.set('Pragma', 'no-cache');
+
+		if (!request.headers.get('User-Agent')) {
+			requestHeaders.set('User-Agent', 'Cloudflare-Worker/1.0');
 		}
 
 		const xForwardedFor =
@@ -111,7 +119,7 @@ export class ReverseProxy {
 		const originResponse = await fetch(originUrl, {
 			headers: requestHeaders,
 			method: request.method,
-			body: request.body as any,
+			...(request.method !== 'GET' && request.method !== 'HEAD' ? { body: request.body as any } : {}),
 			// duplex: 'half',
 			credentials: request.credentials,
 			integrity: request.integrity,
@@ -172,64 +180,48 @@ export class ReverseProxy {
 	 * If the cached response is older than 12 hours, it will be considered stale, and a request will be made to
 	 * the origin server to fetch a fresh response before returning it to the client.
 	 */
-	async fetchStaleWhileRevalidate<Props>(request: Request, ctx: ExecutionContext<Props>, { maxStaleAge = 43200 } = {}): Promise<Response> {
+	async fetchStaleWhileRevalidate<Props>(
+		request: Request,
+		ctx: ExecutionContext<Props>,
+		{ maxStaleAge = 43200, cacheOptions = {} }: { maxStaleAge?: number; cacheOptions?: ReverseProxyCacheOptions } = {},
+	): Promise<Response> {
 		const requestUrl = new URL(request.url);
-		const cacheKey = new Request(requestUrl);
-		const cache = await caches.open('reverse-proxy-cache--' + this.proxyOriginServer.href);
+		const cache = await ReverseProxyCache.open(ctx, cacheOptions);
 
-		const responseWithInjectedCacheControl = async (response: Response) => {
-			const clonedResponse = response.clone();
-			const headers = cloneHeaders(clonedResponse.headers);
-
-			const cacheControl = headers.get('Cache-Control');
-			const directives = cacheControl ? cacheControl.split(',').map((dir) => dir.trim()) : [];
-			directives.push(`s-maxage=${maxStaleAge}`);
-			headers.set('Cache-Control', directives.join(', '));
-
-			let body = await clonedResponse.arrayBuffer();
-			if (headers.get('Content-Encoding') === 'gzip') {
-				// Processing the body to an array buffer causes the gzip encoding to be lost.
-				// Cloudflare will re-encode to gzip when it serves the cached response, but in
-				// the cached response, we need to remove the Content-Encoding header to prevent
-				// double gzip encoding.
-				headers.delete('Content-Encoding');
-			}
-
-			return new Response(body, {
-				status: clonedResponse.status,
-				statusText: clonedResponse.statusText,
-				headers: headers,
-			});
-		};
-
-		const cached = await cache.match(cacheKey);
-		const cachedResponseIsAllowed = request.headers.get('Cache-Control') !== 'no-cache';
-		if (cached && cachedResponseIsAllowed) {
-			if (process.env.DEVELOPMENT) {
-				console.debug(`Cache hit for ${requestUrl.href}`);
-			}
-
+		const cached = await cache.match(request);
+		if (cached.type === 'HIT') {
 			// start to refresh the cache in the background
+			const cachedClone = cached.clone();
 			ctx.waitUntil(
 				(async () => {
 					const newResponse = await this.fetch(request);
-					if (newResponse.ok) {
+					if (!newResponse.ok) {
 						if (process.env.DEVELOPMENT) {
-							console.debug(`Updating cache for ${requestUrl.href}`);
+							console.debug(
+								`Not updating cache for ${requestUrl.href} since the origin response was not successful (status: ${newResponse.status})`,
+							);
 						}
-						await cache.put(cacheKey, await responseWithInjectedCacheControl(newResponse));
+						return;
 					}
+
+					return await cache.putIfChanged(request, newResponse, {
+						cached: cachedClone, // pass the cached value so that it does not need to check the cache again
+						cacheDirectives: [`s-maxage=${maxStaleAge}`],
+					});
 				})(),
 			);
 
-			return cached;
+			return cached.response;
 		}
 
 		const response = await this.fetch(request);
 
 		// if the response is successful, store it in the cache for future use
 		if (response.ok) {
-			ctx.waitUntil(cache.put(cacheKey, await responseWithInjectedCacheControl(response)));
+			ReverseProxyCache.setHeadersForMissOrBypass(response.headers, cached.headersToSet);
+			const responseToCache = response.clone();
+			const cachedClone = cached.clone();
+			ctx.waitUntil(cache.putIfChanged(request, responseToCache, { cached: cachedClone, cacheDirectives: [`s-maxage=${maxStaleAge}`] }));
 		}
 
 		return response;

@@ -14,6 +14,11 @@ const SHI_BLOG_BASE = '/jbtest';
  */
 export default {
 	async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
+		// add trailing slash if there is no file extension
+		if (!requestUrl.pathname.endsWith('/') && !requestUrl.pathname.match(/\.\w+$/)) {
+			return Response.redirect(new URL(requestUrl.pathname + '/' + requestUrl.search, requestUrl.origin), 301);
+		}
+
 		const blogProxy = new ReverseProxy({
 			originServer: new URL(`${BLOG_ORIGIN}${SHI_BLOG_BASE}`),
 			notFoundPaths: ['/.well-known/appspecific/com.chrome.devtools.json'],
@@ -76,11 +81,20 @@ export default {
 		});
 
 		// We do not want to cache the contact page since the page content changes based on user input.
-		if (requestUrl.pathname === '/contact/') {
-			console.debug('Bypassing cache for contact page');
+		const skipCachePaths = ['/contact/', '/wp-login.php'];
+		if (skipCachePaths.includes(requestUrl.pathname)) {
+			console.debug('Skipping cache for path:', requestUrl.pathname);
 			return blogProxy.fetch(request.current);
 		}
 
-		return blogProxy.fetchStaleWhileRevalidate(request.current, ctx, { maxStaleAge: 43200 }); // 12 hours
+		return blogProxy.fetchStaleWhileRevalidate(request.current, ctx, {
+			maxStaleAge: 43200, // 12 hours
+			cacheOptions: {
+				useKV: true,
+				// We will need to manually purge the cache for a page when it updates when this is true.
+				// We do this from the scheduled event that watches for changes every minute. See worker/index.ts.
+				neverExpireKV: true,
+			},
+		});
 	},
 } satisfies ReverseProxyHandler<{ adminBarHref?: string }>;

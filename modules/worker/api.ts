@@ -152,6 +152,28 @@ export default {
 			});
 		}
 
+		if (url.pathname === '/.api/get-modified-posts-since') {
+			const since = url.searchParams.get('since');
+			if (!since) {
+				return new Response(`Missing 'since' query parameter`, {
+					headers: { 'Access-Control-Allow-Origin': '*' },
+					status: 400,
+					statusText: 'Bad Request',
+				});
+			}
+
+			const modifiedPosts = await getModifiedPostsSince(BLOG, since);
+
+			return new Response(JSON.stringify(modifiedPosts), {
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+				},
+				status: 200,
+				statusText: 'OK',
+			});
+		}
+
 		/**
 		 * Converts a response into a stale-while-revalidate capable response.
 		 *
@@ -407,3 +429,69 @@ export const wordpressMediaSchema = z.object({
 	}),
 	_links: z.record(z.string(), z.unknown()),
 });
+
+/**
+ * Gets the available post types from a WordPress site.
+ *
+ * Excludes built-in WordPress types that start with "wp_".
+ */
+async function getPostTypes(baseUrl: string, includeAttachments = false): Promise<string[]> {
+	const url = `${baseUrl}/wp-json/wp/v2/types`;
+	const data = await fetch(url, {
+		headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
+	})
+		.then((res) => res.json())
+		.then((json) => z.record(z.string(), z.object({ slug: z.string(), rest_base: z.string() })).parse(json));
+	const types = Object.entries(data)
+		.filter(
+			([key]) =>
+				!key.startsWith('wp_') &&
+				!key.startsWith('nav_') &&
+				!key.startsWith('coblocks_') &&
+				(includeAttachments ? true : key !== 'attachment'),
+		) // filter out WP and CoBlocks internal types
+		.map(([key, type]) => type.rest_base);
+	return types;
+}
+
+async function getModifiedPostsForTypeSince(baseUrl: string, postTypeSlug: string, since: string) {
+	const url = `${baseUrl}/wp-json/wp/v2/${postTypeSlug}?modified_after=${encodeURIComponent(since)}&per_page=100`;
+	try {
+		const data = await fetch(url, {
+			headers: { 'User-Agent': 'Cloudflare-Worker/1.0' },
+		})
+			.then((res) => res.json())
+			.then((json) =>
+				z
+					.array(
+						z
+							.object({
+								id: z.number(),
+								modified: wpDate,
+								modified_gmt: wpDate,
+								link: z.url(),
+							})
+							.transform((post) => {
+								return {
+									...post,
+									link: post.link.replace(baseUrl, ''), // convert to relative link for easier matching with incoming requests
+								};
+							}),
+					)
+
+					.parse(json),
+			);
+		return data;
+	} catch (error) {
+		if (process.env.DEVELOPMENT) {
+			console.error(`Error fetching modified posts for type '${postTypeSlug}':`, error);
+		}
+		return [];
+	}
+}
+
+export async function getModifiedPostsSince(baseUrl: string, since: string) {
+	const postTypes = await getPostTypes(baseUrl);
+	const modifiedPostsArrays = await Promise.all(postTypes.map((type) => getModifiedPostsForTypeSince(baseUrl, type, since)));
+	return modifiedPostsArrays.flat();
+}

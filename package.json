@@ -8,7 +8,7 @@
 	"engineStrict": true,
 	"scripts": {
 		"deploy": "wrangler deploy --env production",
-		"dev": "wrangler dev --env development --local",
+		"dev": "wrangler dev --env development --local --test-scheduled",
 		"start": "wrangler dev --env production",
 		"test": "vitest",
 		"cf-typegen": "wrangler types",
@@ -27,12 +27,14 @@
 		"svelte": "^5.53.7",
 		"svelte-check": "^4.4.4",
 		"svelte-preprocess": "^6.0.3",
-		"typescript": "^5.5.2",
+		"typescript": "^6.0.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.68.0",
 		"xss": "^1.0.15"
 	},
 	"dependencies": {
+		"@types/core-js": "^2.5.8",
+		"core-js": "^3.49.0",
 		"devalue": "^5.6.3",
 		"linkedom": "^0.18.12",
 		"zod": "^4.3.6"
