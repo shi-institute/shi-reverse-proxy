@@ -12,7 +12,35 @@ export interface ReverseProxyCacheOptions {
 	useKV?: boolean;
 }
 
-type ReverseProxyCacheMatchResult = { type: 'MISS' | 'BYPASS'; headersToSet: Headers } | { type: 'HIT'; response: Response };
+type ReverseProxyCacheMatchMissOrBypassResult = { type: 'MISS' | 'BYPASS'; headersToSet: Headers };
+type ReverseProxyCacheMatchHitResult = {
+	type: 'HIT';
+	/**
+	 * The response that should be sent to the client.
+	 * If the client already has the latest version,
+	 * this response might be a stub with an HTTP 304
+	 * Not Modified status code.
+	 */
+	response: Response;
+};
+
+type ReverseProxyCacheMatchResult = ReverseProxyCacheMatchMissOrBypassResult | ReverseProxyCacheMatchHitResult;
+type ReverseProxyCacheMatchResultProxied = (
+	| ReverseProxyCacheMatchMissOrBypassResult
+	| (ReverseProxyCacheMatchHitResult & {
+			/**
+			 * The resonse property might contain a stub with a
+			 * HTTP 304 Not Modified status code if the client's
+			 * cached version is still fresh. If you still need
+			 * access to the actual cached response, you must use
+			 * `actiualCachedResponse` instead of `response`.
+			 *
+			 * In most cases, you should be responding to the client
+			 * with the response available in `response`.
+			 */
+			actualCachedResponse: Response;
+	  })
+) & { clone: () => ReverseProxyCacheMatchResultProxied };
 
 /**
  * A helper class for using and managing the cached responses from a revser proxy.
@@ -67,6 +95,14 @@ export class ReverseProxyCache<Props> {
 	 * access next time. If no cached response is found in either cache, this
 	 * method will return undefined.
 	 *
+	 * If the incoming request includes the If-Modified-Since header and the
+	 * cached response includes the Last-Modified header, and the date in the
+	 * If-Modified-Since header is greater than or equal to the date in the
+	 * Last-Modified header, a 304 Not Modified response will be provided instead
+	 * of the actual cached response. This saves bandwith and allows the browser
+	 * to use its own cache if it has a valid copy instead of downloading the same
+	 * response again.
+	 *
 	 * The Date header will always be set to the current date and time.
 	 *
 	 * *This method reads the KV cache. This affects the usage limit and may
@@ -76,8 +112,22 @@ export class ReverseProxyCache<Props> {
 	 * The request that might have a response in the cache.
 	 * Only the URL of the request will be considered.
 	 */
-	async match(request: Request): Promise<ReverseProxyCacheMatchResult & { clone: () => ReverseProxyCacheMatchResult }> {
-		const result = await this.internal__match(request);
+	async match(request: Request): Promise<ReverseProxyCacheMatchResultProxied> {
+		const cacheResult = await this.internal__match(request);
+
+		// Use 304 Not Modified to save bandwidth if the cached response
+		// is still fresh and the browser has a valid copy
+		const actualCachedResponse = cacheResult.type === 'HIT' ? cacheResult.response : undefined;
+		if (cacheResult.type === 'HIT') {
+			const ifModifiedSince = request.headers.get('If-Modified-Since');
+			const lastModified = cacheResult.response.headers.get('Last-Modified');
+			if (ifModifiedSince && lastModified && new Date(ifModifiedSince) >= new Date(lastModified)) {
+				cacheResult.response = new Response(null, {
+					status: 304,
+					headers: cacheResult.response.headers,
+				});
+			}
+		}
 
 		// Inject a clone() method on the result that will return a new
 		// result with a cloned response. This is a convienience method
@@ -85,21 +135,34 @@ export class ReverseProxyCache<Props> {
 		// response body can only be read once, so if the caller needs to
 		// read the body multiple times, they will need to clone the response
 		// first.
-		return new Proxy(result, {
-			get(target, prop, receiver) {
-				if (prop === 'clone') {
-					return () => {
-						if (target.type === 'HIT') {
-							return { ...target, response: target.response.clone() };
-						} else {
+		const createProxy = (cacheResult: ReverseProxyCacheMatchResult, actualCachedResponse?: Response) => {
+			return new Proxy(cacheResult, {
+				get(target, prop, receiver) {
+					if (prop === 'clone') {
+						return () => {
+							if (target.type === 'HIT') {
+								return createProxy(
+									{
+										...target,
+										response: target.response.clone(),
+									},
+									actualCachedResponse?.clone(),
+								);
+							}
 							return target;
-						}
-					};
-				}
+						};
+					}
 
-				return Reflect.get(target, prop, receiver);
-			},
-		}) as ReverseProxyCacheMatchResult & { clone: () => ReverseProxyCacheMatchResult };
+					if (prop === 'actualCachedResponse' && target.type === 'HIT') {
+						return actualCachedResponse;
+					}
+
+					return Reflect.get(target, prop, receiver);
+				},
+			}) as ReverseProxyCacheMatchResultProxied;
+		};
+
+		return createProxy(cacheResult, actualCachedResponse);
 	}
 
 	private async internal__match(
@@ -117,13 +180,13 @@ export class ReverseProxyCache<Props> {
 
 		const shouldBypassCache = request.headers.get('Cache-Control')?.includes('no-cache') || request.headers.get('Pragma') === 'no-cache';
 		if (shouldBypassCache) {
-			console.log(`Bypassing cache for ${requestUrl} due to no-cache directive in request headers`);
+			console.debug(`Bypassing cache for ${requestUrl} due to no-cache directive in request headers`);
 			return { type: 'BYPASS', headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'BYPASS', 'no-cache directive') };
 		}
 
 		if (useEdge) {
 			const edgeCacheResponse = await this.readFromEdgeCache(request);
-			console.log(`Cache lookup for ${requestUrl}: ${edgeCacheResponse ? 'HIT' : 'MISS'} in edge cache`);
+			console.debug(`Cache lookup for ${requestUrl}: ${edgeCacheResponse ? 'HIT' : 'MISS'} in edge cache`);
 			if (edgeCacheResponse) {
 				// clear a mutable version of the cached response
 				const response = new Response(edgeCacheResponse.body, {
@@ -140,7 +203,7 @@ export class ReverseProxyCache<Props> {
 
 		if (useKv) {
 			const kvCacheResponse = await this.readFromKvCache(request);
-			console.log(`Cache lookup for ${requestUrl}: ${kvCacheResponse ? 'HIT' : 'MISS'} in KV cache`);
+			console.debug(`Cache lookup for ${requestUrl}: ${kvCacheResponse ? 'HIT' : 'MISS'} in KV cache`);
 			if (kvCacheResponse) {
 				ReverseProxyCache.prepareHeaders(kvCacheResponse.headers, 'HIT');
 				kvCacheResponse.headers.set('X-Cache-Source', 'KV');
@@ -222,7 +285,7 @@ export class ReverseProxyCache<Props> {
 	async putIfChanged(
 		request: Request,
 		response: Response,
-		{ cacheDirectives, cached }: { cacheDirectives?: string[]; cached?: ReverseProxyCacheMatchResult } = {},
+		{ cacheDirectives, cached }: { cacheDirectives?: string[]; cached?: ReverseProxyCacheMatchResultProxied } = {},
 	) {
 		const requestUrl = new URL(request.url);
 
@@ -231,7 +294,7 @@ export class ReverseProxyCache<Props> {
 		// to see if there is a cached response that we can use for comparison.
 		if (!cached || cached.type === 'BYPASS') {
 			// use cache key so that no-cache (or similar) directives do not cause another BYPASS
-			cached = await this.internal__match(request);
+			cached = await this.match(request);
 		}
 
 		if (cached.type !== 'HIT') {
@@ -240,7 +303,7 @@ export class ReverseProxyCache<Props> {
 		}
 
 		// Only update the cache if the body is changed from the cached version.
-		const cacheIsCurrent = await compareResponses(response.clone(), cached.response.clone(), requestUrl);
+		const cacheIsCurrent = await compareResponses(response.clone(), cached.actualCachedResponse.clone(), requestUrl);
 
 		// TODO: Add an option to extend the cache expiration time even if the body is unchanged.
 		if (cacheIsCurrent) {
