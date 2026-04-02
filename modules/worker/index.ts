@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { ServerTimingHelper } from '../custom-elements/utils';
 import handleApiRequest, { getModifiedPostsSince } from './api';
 import { ReverseProxyHandlerQueue } from './common/ReverseProxy';
 import { RewritableRequest } from './common/RewritableRequest';
@@ -7,16 +8,7 @@ import { redirects, rewrites } from './redirects';
 
 export default {
 	async fetch(_request, env, ctx): Promise<Response> {
-		// const LAST_DAY = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-		// const modifiedPosts = await getModifiedPostsSince('https://blogs.furman.edu/jbtest', LAST_DAY);
-		// for (const post of modifiedPosts) {
-		// 	console.log(`Post modified since ${LAST_DAY}: ${post.link}`);
-
-		// 	// revalidate the cache for the modified post's URL by making a request to the URL with a cache-busting query parameter
-		// 	proxies.blogsFurmanEdu.fetch(new Request(`${post.link}?cache-bust=${Date.now()}`), env, ctx);
-		// }
-
-		// console.log(modifiedPosts);
+		const startTime = performance.now();
 
 		try {
 			const rr = new RewritableRequest(_request);
@@ -66,23 +58,29 @@ export default {
 
 			const proxiedResponse = await proxyQueue.flush(rr, env, ctx as ExecutionContext<{ adminBarHref?: string }>);
 			if (proxiedResponse) {
+				proxiedResponse.headers.set(
+					'Server-Timing',
+					ServerTimingHelper.setTiming(proxiedResponse.headers, 'worker', performance.now() - startTime, 'Worker Duration'),
+				);
 				return proxiedResponse;
-			} else {
-				return new Response('Not found', {
-					status: 404,
-					headers: {
-						'Content-Type': 'text/plain; charset=utf-8',
-						'Cache-Control': 'no-store',
-					},
-					cf: { cacheTtl: 0, cacheEverything: false },
-				});
 			}
+
+			return new Response('Not found', {
+				status: 404,
+				headers: {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-store',
+					'X-Worker-Duration': ServerTimingHelper.asTimingString('worker', performance.now() - startTime, 'Worker Duration'),
+				},
+				cf: { cacheTtl: 0, cacheEverything: false },
+			});
 		} catch (error) {
 			return new Response(`Error: ${error instanceof Error ? error.message : String(error)}`, {
 				status: 500,
 				headers: {
 					'Content-Type': 'text/plain; charset=utf-8',
 					'Cache-Control': 'no-store',
+					'X-Worker-Duration': ServerTimingHelper.asTimingString('worker', performance.now() - startTime, 'Worker Duration'),
 				},
 				cf: { cacheTtl: 0, cacheEverything: false },
 			});

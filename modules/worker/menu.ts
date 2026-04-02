@@ -3,6 +3,7 @@ import z from 'zod';
 import customElementsCss from '../custom-elements/components/custom-elements.css';
 import type { TopLevelNavigationListItem } from '../custom-elements/components/navigation-bar-parts/NavigationList.svelte';
 import { render } from '../custom-elements/server.js';
+import { ServerTimingHelper } from '../custom-elements/utils';
 
 type NavigationTier = 'secondaryLeft' | 'secondaryRight' | 'desktopNavbar' | 'sideMenu' | 'footerMenu';
 
@@ -111,8 +112,25 @@ function toNavigationListItem(item: z.infer<typeof navigationMenuSchema>['items'
  * the menu HTML is available immedeiately on page load. The menu is upgraded to a custom element on the client side
  * once the custom elements script is loaded.
  */
-export async function getInjectableNavigation(ctx: ExecutionContext<{ adminBarHref?: string }>, currentUrl: URL) {
+export async function getInjectableNavigation(
+	ctx: ExecutionContext<{ adminBarHref?: string }>,
+	currentUrl: URL,
+	withTimings: true,
+): Promise<{ html: string; timings: ServerTimingHelper }>;
+export async function getInjectableNavigation(
+	ctx: ExecutionContext<{ adminBarHref?: string }>,
+	currentUrl: URL,
+	withTimings?: false,
+): Promise<string>;
+export async function getInjectableNavigation(
+	ctx: ExecutionContext<{ adminBarHref?: string }>,
+	currentUrl: URL,
+	withTimings?: boolean,
+): Promise<string | { html: string; timings: ServerTimingHelper }> {
+	const startTime = performance.now();
+
 	const menuData = await getNavigationMenuData(ctx);
+	const menuDataFetchDuration = performance.now() - startTime;
 
 	function transformHref(href: string) {
 		// if (href === '/') {
@@ -139,7 +157,7 @@ export async function getInjectableNavigation(ctx: ExecutionContext<{ adminBarHr
 		{ url: currentUrl },
 	);
 
-	return `
+	const responseHtml = `
 		<style>${customElementsCss}</style>
 		${await adminBarHtml}
 		${await secondaryMenuBarHtml}
@@ -206,6 +224,16 @@ export async function getInjectableNavigation(ctx: ExecutionContext<{ adminBarHr
                           https://shi.institute                       \`);
 		</script>
 	`;
+
+	if (withTimings) {
+		const totalDuration = performance.now() - startTime;
+		const timings = new ServerTimingHelper(new Headers());
+		timings.setTiming('menu-fetch', menuDataFetchDuration, 'Menu Data Fetch Duration');
+		timings.setTiming('menu-gen', totalDuration, 'Menu Generation Duration');
+		return { html: responseHtml, timings: timings };
+	}
+
+	return responseHtml;
 }
 
 export async function getNavigationMenuData(ctx: ExecutionContext<{ adminBarHref?: string }>) {

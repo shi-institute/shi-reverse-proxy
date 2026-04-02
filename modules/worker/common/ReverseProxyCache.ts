@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import { ServerTimingHelper } from '../../custom-elements/utils';
 
 export interface ReverseProxyCacheOptions {
 	/**
@@ -170,7 +171,7 @@ export class ReverseProxyCache<Props> {
 		{ useKv = this.options.useKV, useEdge = true } = {},
 	): Promise<ReverseProxyCacheMatchResult> {
 		const requestUrl = new URL(request.url);
-		const startTime = new Date();
+		const startTime = performance.now();
 
 		if (requestUrl.pathname.startsWith('/.well-known/')) {
 			return {
@@ -350,7 +351,7 @@ export class ReverseProxyCache<Props> {
 	 *
 	 * **This method is in-place.**
 	 */
-	private static prepareHeaders(headers: Headers, cache: 'HIT' | 'BYPASS' | 'MISS', reason?: string, startTime?: Date) {
+	private static prepareHeaders(headers: Headers, cache: 'HIT' | 'BYPASS' | 'MISS', reason?: string, startMs?: number) {
 		headers.set('Date', new Date().toUTCString());
 
 		// remove existing X-Cache headers
@@ -371,12 +372,9 @@ export class ReverseProxyCache<Props> {
 			}
 		}
 
-		if (startTime) {
-			const duration = Date.now() - startTime.getTime();
-
-			const timeString = duration < 1000 ? `${duration}ms` : `${(duration / 1000).toFixed(2)}s`;
-
-			headers.set('X-Cache-Lookup-Duration', timeString);
+		if (startMs) {
+			const timingHeader = ServerTimingHelper.setTiming(headers, 'cache-lookup', performance.now() - startMs, 'Cache Read');
+			headers.set('Server-Timing', timingHeader);
 		}
 
 		return headers;
@@ -408,6 +406,14 @@ export class ReverseProxyCache<Props> {
 	 */
 	async putInEdgeCache(request: Request, response: Response) {
 		const requestUrl = new URL(request.url);
+		response = await this.prepareHeadersForCache(requestUrl, response);
+
+		console.debug(`Putting response for ${requestUrl.href} in edge cache.`);
+		await this.edgeCache.put(request.url, response);
+	}
+
+	async prepareHeadersForCache(requestUrl: URL, _response: Response) {
+		const response = _response.clone();
 
 		// ensure that the last-modified header exists on the response
 		const currentLastModified = parseDateHeaderValue(response.headers.get('Last-Modified'));
@@ -451,6 +457,10 @@ export class ReverseProxyCache<Props> {
 			});
 		}
 
+		// Clear Server-Timing headers since they are not meaningful when served
+		// from cache and can cause confusion when debugging.
+		response.headers.delete('Server-Timing');
+
 		// Configure cache tags based on the request URL.
 		// By tagging cached responses, we are able to purge a cached
 		// response for a URL across all edges (datacenters) at once
@@ -460,8 +470,7 @@ export class ReverseProxyCache<Props> {
 		const strictCacheTag = requestUrl.href;
 		response.headers.set('Cache-Tag', [originCacheTag, looseCacheTag, strictCacheTag].join(','));
 
-		console.debug(`Putting response for ${requestUrl.href} in edge cache.`);
-		await this.edgeCache.put(request.url, response);
+		return response;
 	}
 
 	async readFromEdgeCache(request: Request) {
@@ -480,7 +489,7 @@ export class ReverseProxyCache<Props> {
 		}
 
 		const requestUrl = new URL(request.url);
-		const responseClone = response.clone();
+		const responseClone = await this.prepareHeadersForCache(requestUrl, response);
 
 		// only cache HTML, CSS, and JS
 		const contentType = responseClone.headers.get('Content-Type') || '';
@@ -490,12 +499,6 @@ export class ReverseProxyCache<Props> {
 		if (!isHtml && !isCss && !isJs) {
 			console.debug(`Response for ${requestUrl.href} has content type ${contentType} and will not be stored in KV cache.`);
 			return;
-		}
-
-		// ensure that the last-modified header exists on the response
-		const currentLastModified = parseDateHeaderValue(responseClone.headers.get('Last-Modified'));
-		if (!currentLastModified) {
-			responseClone.headers.set('Last-Modified', responseClone.headers.get('Date') || new Date().toUTCString());
 		}
 
 		const entry = await this.KvCacheEntry.fromResponse(responseClone);

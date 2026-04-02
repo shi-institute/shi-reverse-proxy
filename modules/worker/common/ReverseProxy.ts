@@ -1,4 +1,5 @@
 import 'core-js/proposals/array-buffer-base64';
+import { ServerTimingHelper } from '../../custom-elements/utils';
 import type { ReverseProxyHandler } from './Handler';
 import { ReverseProxyCache, type ReverseProxyCacheOptions } from './ReverseProxyCache';
 import type { RewritableRequest } from './RewritableRequest';
@@ -73,6 +74,7 @@ export class ReverseProxy {
 	}
 
 	async fetch(request: Request): Promise<Response> {
+		const startMs = performance.now();
 		const requestUrl = new URL(request.url);
 
 		if (this.notFoundPaths.includes(requestUrl.pathname)) {
@@ -117,6 +119,7 @@ export class ReverseProxy {
 		requestHeaders.set('X-Shi-Forwarded-Proto', xForwardedProto);
 		requestHeaders.set('Forwarded', `for=${xForwardedFor || ''};proto=${xForwardedProto};host=${xForwardedHost}`);
 
+		const originStartTime = performance.now();
 		const originResponse = await fetch(originUrl, {
 			headers: requestHeaders,
 			method: request.method,
@@ -135,6 +138,7 @@ export class ReverseProxy {
 			console.error(`Failed to fetch from ${originUrl.href}: `, error);
 			throw new Error(`Failed to fetch from ${originUrl.href}: ${error}`);
 		});
+		const originDuration = performance.now() - originStartTime;
 
 		// follow redirects
 		if ([301, 302, 303, 307, 308].includes(originResponse.status)) {
@@ -156,6 +160,10 @@ export class ReverseProxy {
 
 			const headers = cloneHeaders(originResponse.headers);
 			headers.set('Location', proxiedLocation.toString());
+			headers.set(
+				'Server-Timing',
+				ServerTimingHelper.asTimingString('reverse-proxy', performance.now() - startMs, 'Reverse Proxy Duration'),
+			);
 
 			return new Response(null, {
 				status: originResponse.status,
@@ -165,11 +173,19 @@ export class ReverseProxy {
 		}
 
 		// replace all URLs in the response body that point to the WordPress server with URLs that point to the proxy
+		const bodyReadStartMs = performance.now();
 		const body = await this.readBodyWithReplacements(originResponse, requestUrl);
+		const bodyReadDuration = performance.now() - bodyReadStartMs;
 
 		const headers = cloneHeaders(originResponse.headers);
+		const timings = new ServerTimingHelper(headers);
+		timings.setTiming('reverse-proxy', performance.now() - startMs, 'Reverse Proxy Duration');
+		timings.setTiming('origin', originDuration, 'Origin Response Time');
+		timings.setTiming('read-body', bodyReadDuration, 'Read and Replace Body Duration');
+		headers.set('Server-Timing', timings.toString());
 		headers.set('Link', `<${requestUrl.href}>; rel="canonical"`);
 		headers.set('Content-Security-Policy', 'upgrade-insecure-requests');
+
 		return new Response(body, {
 			status: originResponse.status,
 			headers,
@@ -373,8 +389,15 @@ export class ReverseProxyHandlerQueue<ExecutionContextProps> {
 	): Promise<Response | void> {
 		let response: Response | undefined = undefined;
 
-		for await (const handler of this.queue) {
+		const timings = new ServerTimingHelper(new Headers());
+		for await (const [handler, index] of Array.from(this.queue).map((handler, index) => [handler, index] as const)) {
+			const handlerStartTime = performance.now();
+
 			const maybeResponse = await handler.fetch(request, env, ctx);
+
+			const handlerDuration = performance.now() - handlerStartTime;
+			timings.setTiming(`handler-${index}`, handlerDuration, `Handler ${index + 1} Duration`);
+
 			if (maybeResponse) {
 				response = maybeResponse;
 				break;
@@ -384,6 +407,7 @@ export class ReverseProxyHandlerQueue<ExecutionContextProps> {
 		this.queue.clear();
 
 		if (response) {
+			// response.headers.set('Server-Timing', ServerTimingHelper.merge(timings, response.headers).toString());
 			return response;
 		}
 	}
