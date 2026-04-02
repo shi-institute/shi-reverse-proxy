@@ -1,6 +1,3 @@
-:root {
-	color-scheme: light dark;
-}
 body {
 	--bs-body-bg: light-dark(white, #212121);
 }

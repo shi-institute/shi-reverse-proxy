@@ -150,8 +150,10 @@ export default {
 						`<meta charset="utf-8"><style>${furmanOverrides}</style><!-- dark-mode --><!-- home-mods --><!-- reduce-motion-mods -->`,
 					);
 
-					// inject dark mode support via darkreader
-					body = body.replace('<!-- dark-mode -->', furmanDarkModeOverrides);
+					// inject dark mode support via darkreader on approved pages (home page and people pages)
+					if (requestUrl.pathname === '/shi-institute/new-home/' || requestUrl.pathname.startsWith('/people/')) {
+						body = body.replace('<!-- dark-mode -->', furmanDarkModeOverrides);
+					}
 
 					// home page style modifications
 					if (requestUrl.pathname === '/shi-institute/new-home/') {
