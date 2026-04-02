@@ -9,6 +9,7 @@
 			itemsTextPlural: { reflect: true, type: 'String', attribute: 'items-text-plural' },
 			itemsTextSingular: { reflect: true, type: 'String', attribute: 'items-text-singular' },
 			variant: { reflect: true, type: 'String', attribute: 'variant' },
+			popoverId: { reflect: true, type: 'String', attribute: 'popover-id' },
 		},
 	}}
 />
@@ -44,6 +45,14 @@
 		itemsTextPlural?: string;
 		itemsTextSingular?: string;
 		variant?: 'default' | 'button' | 'button--white';
+		/**
+		 * This ID is used for the unique popover id. If you need the ID to be consistent across renders,
+		 * generate a UUID or other unique string and provide it here.
+		 *
+		 * The ID needs to be consistent across renders if you are caching the rendered HTML of the component on the
+		 * server. If the ID changes on every render, the cache will be always be outdated.
+		 */
+		popoverId?: string;
 	}
 </script>
 
@@ -59,11 +68,21 @@
 		itemsTextPlural = 'items',
 		itemsTextSingular = 'item',
 		variant = 'default',
+		popoverId: _popoverId,
 	}: ComboboxProps = $props();
 	const closeOnSelect = $derived(_closeOnSelect ?? !multiple);
 	const anOrA = $derived(itemsTextSingular && ['a', 'e', 'i', 'o', 'u'].includes(itemsTextSingular?.[0]?.toLowerCase() || '') ? 'an' : 'a');
 	const placeholder = $derived(_placeholder ?? (multiple ? 'Select ' + itemsTextPlural : `Select ${anOrA} ${itemsTextSingular}`));
 	const searchPlaceholder = $derived(_searchPlaceholder ?? `Search for ${anOrA} ${itemsTextSingular}`);
+
+	const popoverId = $derived.by(() => {
+		if (_popoverId) {
+			return _popoverId;
+		} else {
+			console.warn('No popoverId was provided for a <shi-select> element.');
+			return crypto.randomUUID();
+		}
+	});
 
 	let open: boolean = $state(false);
 	let hasOpened: boolean = $state(false);
@@ -245,8 +264,6 @@
 		}
 	}
 
-	const comboboxId = crypto.randomUUID();
-
 	/**
 	 * Injects styles for the options into the host element. This is necessary because
 	 * shadow DOM does not allow us to style the children of the host element.
@@ -258,12 +275,12 @@
 			return;
 		}
 
-		const style = host.querySelector(`style[data-for='${comboboxId}']`);
+		const style = host.querySelector(`style[data-for='${popoverId}']`);
 		if (!style) {
 			const newStyle = document.createElement('style');
-			newStyle.setAttribute('data-for', comboboxId);
+			newStyle.setAttribute('data-for', popoverId);
 			newStyle.textContent = `
-        [data-id='${comboboxId}'] optgroup {
+        [data-id='${popoverId}'] optgroup {
           font-weight: 600;
           font-size: 12px;
           line-height: 24px;
@@ -271,7 +288,7 @@
           color: light-dark(rgba(0 0 0 / 0.6), rgba(255 255 255 / 0.6));
         }
 
-        [data-id='${comboboxId}'] option {
+        [data-id='${popoverId}'] option {
           color: light-dark(#111, #e0e0e0);
           position: relative;
           padding: 6px 8px 6px 36px;
@@ -285,27 +302,27 @@
           text-box-edge: cap alphabetic;
           cursor: default;
         }
-        [data-id='${comboboxId}'] option:hover {
+        [data-id='${popoverId}'] option:hover {
           background-color: var(--hover-bg);
         }
-        [data-id='${comboboxId}'] option:active {
+        [data-id='${popoverId}'] option:active {
           background-color: var(--active-bg);
         }
-        [data-id='${comboboxId}'] option:focus-visible {
+        [data-id='${popoverId}'] option:focus-visible {
           box-shadow: 0 0 0 2px var(--shi-adaptive-color--purple);
           outline: none;
         }
-        [data-id='${comboboxId}'] option[disabled] {
+        [data-id='${popoverId}'] option[disabled] {
           opacity: 0.5;
           cursor: not-allowed;
         }
 
-        [data-id='${comboboxId}'] .hidden {
+        [data-id='${popoverId}'] .hidden {
           display: none;
         }
 
         /* checkmark and radio styles */
-        [data-id='${comboboxId}'] option::before, [data-id='${comboboxId}'] option::after {
+        [data-id='${popoverId}'] option::before, [data-id='${popoverId}'] option::after {
           content: '';
           position: absolute;
           left: 8px;
@@ -318,28 +335,28 @@
           mask-repeat: no-repeat;
           background-color: transparent;
         }
-        [data-id='${comboboxId}'] option[selected]::before {
+        [data-id='${popoverId}'] option[selected]::before {
           background-color: light-dark(var(--shi-color-purple), oklch(from var(--shi-color-purple) calc(l + 0.48) calc(c - 0.08) h));
         }
-        [data-id='${comboboxId}'].multiple option[selected]::before {
+        [data-id='${popoverId}'].multiple option[selected]::before {
           mask-image: url(data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20%20%20%20d%3D%22m8.5%2016.586-3.793-3.793a1%201%200%200%200-1.414%201.414l4.5%204.5a1%201%200%200%200%201.414%200l11-11a1%201%200%200%200-1.414-1.414L8.5%2016.586Z%22%20%20%20%20fill%3D%22%23ffffff%22%20%2F%3E%3C%2Fsvg%3E);
         }
-        [data-id='${comboboxId}']:not(.multiple) option:not([selected])::before {
+        [data-id='${popoverId}']:not(.multiple) option:not([selected])::before {
           /* radio outline */
           mask-image: url(data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12%2022.002c5.524%200%2010.002-4.478%2010.002-10.001%200-5.524-4.478-10.002-10.002-10.002-5.524%200-10.002%204.478-10.002%2010.002%200%205.523%204.478%2010.001%2010.002%2010.001Zm0-1.5A8.501%208.501%200%201%201%2012%203.5a8.501%208.501%200%200%201%200%2017.003Z%22%20fill%3D%22%23ffffff%22%2F%3E%3C%2Fsvg%3E);
           background-color: light-dark(rgba(0 0 0 / 0.5), rgba(255 255 255 / 0.5));
         }
-        [data-id='${comboboxId}']:not(.multiple) option[selected]::before {
+        [data-id='${popoverId}']:not(.multiple) option[selected]::before {
           /* radio filled circle */
           mask-image: url("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M0%2010C0%204.47715%204.47715%200%2010%200C15.5228%200%2020%204.47715%2020%2010C20%2015.5228%2015.5228%2020%2010%2020C4.47715%2020%200%2015.5228%200%2010Z%22%20fill%3D%22%23FFFFFF%22%20transform%3D%22translate(2%202)%22%20%2F%3E%3C%2Fsvg%3E");
         }
-        [data-id='${comboboxId}']:not(.multiple) option[selected]::after {
+        [data-id='${popoverId}']:not(.multiple) option[selected]::after {
           /* radio center */
           mask-image: url("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5.998%200C9.3106%204.76837e-07%2011.996%202.6854%2011.996%205.998C11.996%209.3106%209.3106%2011.996%205.998%2011.996C2.6854%2011.996%200%209.3106%200%205.998C4.76837e-07%202.6854%202.6854%204.76837e-07%205.998%204.76837e-07C5.998%204.76837e-07%205.998%200%205.998%200Z%22%20fill%3D%22%23ffffff%22%20transform%3D%22translate(5.999%205.999)%22%20%20%2F%3E%3C%2Fsvg%3E");
           background-color: light-dark(white, black);
         }
       `;
-			host.setAttribute('data-id', comboboxId);
+			host.setAttribute('data-id', popoverId);
 			host.appendChild(newStyle);
 		}
 
@@ -387,7 +404,7 @@
 <div class="select" class:open {style}>
 	<button
 		class="label"
-		popovertarget={comboboxId}
+		popovertarget={popoverId}
 		popovertargetaction="toggle"
 		class:variant-button={variant === 'button' || variant.startsWith('button--')}
 		class:variant-button--white={variant === 'button--white'}
@@ -412,7 +429,7 @@
 		class:hasOpened
 		inert={!open}
 		popover="auto"
-		id={comboboxId}
+		id={popoverId}
 		ontoggle={() => {
 			open = !open;
 			hasOpened = true;
