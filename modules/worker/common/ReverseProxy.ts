@@ -396,7 +396,9 @@ export class ReverseProxyHandlerQueue<ExecutionContextProps> {
 			const maybeResponse = await handler.fetch(request, env, ctx);
 
 			const handlerDuration = performance.now() - handlerStartTime;
-			timings.setTiming(`handler-${index}`, handlerDuration, `Handler ${index + 1} Duration`);
+			if (handlerDuration > 1) {
+				timings.setTiming(`handler-${index + 1}`, handlerDuration, `Handler ${index + 1} Duration`);
+			}
 
 			if (maybeResponse) {
 				response = maybeResponse;
@@ -407,8 +409,13 @@ export class ReverseProxyHandlerQueue<ExecutionContextProps> {
 		this.queue.clear();
 
 		if (response) {
-			// response.headers.set('Server-Timing', ServerTimingHelper.merge(timings, response.headers).toString());
-			return response;
+			const headers = cloneHeaders(response.headers);
+			headers.set('Server-Timing', ServerTimingHelper.merge(timings, response.headers).toString());
+			return new Response(response.body, {
+				status: response.status,
+				statusText: response.statusText,
+				headers,
+			});
 		}
 	}
 }
