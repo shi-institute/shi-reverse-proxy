@@ -31,20 +31,6 @@ export default {
 				// use the text presentation form of the arrow to stop it from converting to an emoji variant: https://stackoverflow.com/a/54026677
 				'↗': '↗︎',
 
-				// inject our own navigation elements
-				'</header>': `<style>
-						/* hide the old menus */
-						header > div:has(nav) {
-							display: none;
-						}
-						/* stop WordPress from adding margin before our menu items */
-						header > * {
-							margin: 0 !important;
-						}
-					</style>
-					${await getInjectableNavigation(ctx, originalRequestUrl)}
-				</header>`,
-
 				// hide built-in navigation elements
 				'</head>': '<style>header>div:nth-child(1),header>div:nth-child(2){display:none !important;}</style></head>',
 				// stop WordPress from adding margin before our injected custom navigation elements
@@ -57,6 +43,23 @@ export default {
 				if (!contentType.includes('text/html') || typeof body !== 'string') {
 					return;
 				}
+
+				// inject our own navigation elements
+				body = body.replace(
+					'</header>',
+					`<style>
+						/* hide the old menus */
+						header > div:has(nav) {
+							display: none;
+						}
+						/* stop WordPress from adding margin before our menu items */
+						header > * {
+							margin: 0 !important;
+						}
+					</style>
+					${await getInjectableNavigation(ctx, originalRequestUrl)}
+				</header>`,
+				);
 
 				body = replaceAliasPaths(body);
 
