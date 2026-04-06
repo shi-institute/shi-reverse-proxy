@@ -7,7 +7,6 @@ import { ReverseProxy } from '../common/ReverseProxy';
 import { replaceAliasPaths } from '../common/utils';
 import { getFooterHTML } from '../footer';
 import { getInjectableNavigation } from '../menu';
-import { rewrites } from '../redirects';
 
 const FURMAN_EDU_ORIGIN = 'https://www.furman.edu';
 const SHI_INSTITUTE_BASE = '/shi-institute';
@@ -25,7 +24,7 @@ const approvedPersonTypes = ['staff', 'affiliates', 'fellows'];
  *   slug on furman.edu. This is used for faculty and staff profile pages.
  *
  * Additionally, the home page (/) is re-written to show the content from
- * furman.edu/shi-institute/new-home while keeping the URL as / in the browser.
+ * furman.edu/shi-institute while keeping the URL as / in the browser.
  */
 export default {
 	async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
@@ -151,12 +150,12 @@ export default {
 					);
 
 					// inject dark mode support via darkreader on approved pages (home page and people pages)
-					if (requestUrl.pathname === '/shi-institute/new-home/' || requestUrl.pathname.startsWith('/people/')) {
+					if (requestUrl.pathname === '/shi-institute/' || requestUrl.pathname.startsWith('/people/')) {
 						body = body.replace('<!-- dark-mode -->', furmanDarkModeOverrides);
 					}
 
 					// home page style modifications
-					if (requestUrl.pathname === '/shi-institute/new-home/') {
+					if (requestUrl.pathname === '/shi-institute/') {
 						body = body.replace('<!-- home-mods -->', `<style>${furmanHomeOverrides}</style>`);
 						body = body.replace('target="_blank" href="https://shi.institute/about/"', `href="${requestUrl.origin}/about/"`);
 					}
