@@ -62,11 +62,55 @@
 	const items: NavigationListItem[] = $derived([
 		{
 			label: 'Dashboard',
-			href: adminHref,
+			href: 'https://blogs.furman.edu/jbtest/wp-admin/',
+			children: [
+				{
+					label: 'Shi Institute',
+					href: 'https://blogs.furman.edu/jbtest/wp-admin/',
+				},
+				{
+					label: 'Shi Institute (FU)',
+					href: 'https://www.furman.edu/shi-institute/wp-admin/',
+				},
+				{
+					label: 'Sustainability',
+					href: 'https://www.furman.edu/sustainability/wp-admin/',
+				},
+			],
 		},
 		{
 			label: 'Edit Site',
-			href: `${adminHref}/site-editor.php`,
+			href: 'https://blogs.furman.edu/jbtest/site-editor.php',
+		},
+		{
+			label: 'New',
+			href: `https://www.furman.edu/shi-institute/wp-admin/post-new.php`,
+			children: [
+				{
+					label: 'Post',
+					href: `https://www.furman.edu/shi-institute/wp-admin/post-new.php`,
+				},
+				{
+					label: 'Project Brief',
+					href: 'https://blogs.furman.edu/jbtest/wp-admin/post-new.php?post_type=projects',
+				},
+				{
+					label: 'Services',
+					href: 'https://blogs.furman.edu/jbtest/wp-admin/post-new.php?post_type=services',
+				},
+				{
+					label: 'Staff',
+					href: 'https://blogs.furman.edu/jbtest/wp-admin/post-new.php?post_type=staff',
+				},
+				{
+					label: 'Affiliate',
+					href: 'https://blogs.furman.edu/jbtest/wp-admin/post-new.php?post_type=affiliate',
+				},
+				{
+					label: 'Fellows',
+					href: 'https://blogs.furman.edu/jbtest/wp-admin/post-new.php?post_type=fellow',
+				},
+			],
 		},
 		{
 			label: 'Edit Page',
@@ -90,7 +134,7 @@
 		top: 0;
 		background: black;
 		width: 100%;
-		z-index: 1000;
+		z-index: 1001;
 		display: none;
 		align-items: center;
 		justify-content: space-between;
