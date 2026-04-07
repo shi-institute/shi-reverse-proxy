@@ -2,6 +2,10 @@
 .module-content-block-related-degrees {
 	margin-top: 0 !important;
 }
+/* But still ensure there is margin after the hero */
+.primary-hero {
+	margin-bottom: 50px !important;
+}
 /* Ensure that the video fills the container */
 #uploaded-hero-video {
 	width: 100%;
@@ -19,10 +23,6 @@ nav[aria-label='breadcrumbs'] {
 /* Ensure module items never get too small (vertically) such that the image is barely visible */
 .module-content-block-related-degrees-item {
 	min-height: 280px !important;
-}
-/* Restore amrgin between first and following paragraphs in the WYSIWYG module */
-.home-banner-caption-holder + p {
-	margin-top: 12px !important;
 }
 /* Left-align the 'Who We Are' buttons */
 .module-content-block-wysiwyg-content-button-link {
@@ -74,4 +74,11 @@ nav[aria-label='breadcrumbs'] {
 /* do not allow darkreader to invert the play/pause button background */
 .hero-banner-buttons .round-button {
 	--darkreader-background-ffffff: #fff !important;
+}
+
+/* Remove the underline from the related degrees block bullets
+since it makes the bullet text look like a hyperlink even though
+it is not a hyperlink. */
+.module-content-block-related-degrees__list li span {
+	border-bottom-color: transparent !important;
 }

@@ -150,12 +150,16 @@ export default {
 					);
 
 					// inject dark mode support via darkreader on approved pages (home page and people pages)
-					if (requestUrl.pathname === '/shi-institute/' || requestUrl.pathname.startsWith('/people/')) {
+					if (
+						originalRequestUrl.pathname === '/' ||
+						originalRequestUrl.pathname === '/students/' ||
+						requestUrl.pathname.startsWith('/people/')
+					) {
 						body = body.replace('<!-- dark-mode -->', furmanDarkModeOverrides);
 					}
 
 					// home page style modifications
-					if (requestUrl.pathname === '/shi-institute/') {
+					if (originalRequestUrl.pathname === '/' || originalRequestUrl.pathname === '/students/') {
 						body = body.replace('<!-- home-mods -->', `<style>${furmanHomeOverrides}</style>`);
 						body = body.replace('target="_blank" href="https://shi.institute/about/"', `href="${requestUrl.origin}/about/"`);
 					}
