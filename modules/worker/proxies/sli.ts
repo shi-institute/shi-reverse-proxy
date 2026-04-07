@@ -96,6 +96,9 @@ export default {
                       $1`,
 					);
 
+					// Use Shi favicon
+					body = body.replace('https://www.sustainsouthcarolina.org/favicon.ico', '/favicon.svg');
+
 					// replace footer with the one from the WordPress blog site
 					const footerHTML = await getFooterHTML(ctx);
 					if (footerHTML) {
