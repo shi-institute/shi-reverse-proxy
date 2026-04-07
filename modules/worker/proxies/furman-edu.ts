@@ -101,6 +101,16 @@ export default {
 
 		const fuProxy = new ReverseProxy({
 			originServer: new URL('https://www.furman.edu/shi-institute'),
+			speculationRules: {
+				prerender: [
+					{
+						where: {
+							and: [{ href_matches: '/*' }, { not: { selector_matches: '[data-no-prefetch], .no-prefetch, .no-prefetch a' } }],
+						},
+						eagerness: 'moderate', // prerender on hover
+					},
+				],
+			},
 			afterBodyReplacements: async (body, requestUrl, contentType) => {
 				if (contentType.includes('text/html') && typeof body === 'string') {
 					// hide furman.edu navigation elements

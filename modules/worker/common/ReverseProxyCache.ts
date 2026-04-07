@@ -180,7 +180,11 @@ export class ReverseProxyCache<Props> {
 			};
 		}
 
-		const shouldBypassCache = request.headers.get('Cache-Control')?.includes('no-cache') || request.headers.get('Pragma') === 'no-cache';
+		const isPrerenderOrPrefetch =
+			request.headers.get('Sec-Purpose')?.includes('prerender') || request.headers.get('Sec-Purpose')?.includes('prefetch');
+		const shouldBypassCache =
+			(request.headers.get('Cache-Control')?.includes('no-cache') || request.headers.get('Pragma') === 'no-cache') &&
+			!isPrerenderOrPrefetch; // browsers always include the no-cache directive in prefetch requests, but we do not want to re-build the cache for ever user's prerender or prefetch
 		if (shouldBypassCache) {
 			console.debug(`Bypassing cache for ${requestUrl} due to no-cache directive in request headers`);
 			return { type: 'BYPASS', headersToSet: ReverseProxyCache.prepareHeaders(new Headers(), 'BYPASS', 'no-cache directive', startTime) };

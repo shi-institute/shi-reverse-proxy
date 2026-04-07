@@ -17,6 +17,16 @@ export default {
 
 		const sliProxy = new ReverseProxy({
 			originServer: new URL(SLI_BASE, SUSTAIN_SC_ORIGIN),
+			speculationRules: {
+				prerender: [
+					{
+						where: {
+							and: [{ href_matches: '/*' }, { not: { selector_matches: '[data-no-prefetch], .no-prefetch, .no-prefetch a' } }],
+						},
+						eagerness: 'moderate', // prerender on hover
+					},
+				],
+			},
 			async afterBodyReplacements(body, requestUrl, contentType) {
 				if (contentType.includes('text/html') && typeof body === 'string') {
 					// remove the header

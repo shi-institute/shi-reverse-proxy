@@ -22,6 +22,16 @@ export default {
 		const blogProxy = new ReverseProxy({
 			originServer: new URL(`${BLOG_ORIGIN}${SHI_BLOG_BASE}`),
 			notFoundPaths: ['/.well-known/appspecific/com.chrome.devtools.json'],
+			speculationRules: {
+				prerender: [
+					{
+						where: {
+							and: [{ href_matches: '/*' }, { not: { selector_matches: '[data-no-prefetch], .no-prefetch, .no-prefetch a' } }],
+						},
+						eagerness: 'moderate', // prerender on hover
+					},
+				],
+			},
 			stringReplacements: {
 				'shi.institute/Shibboleth.sso': 'blogs.furman.edu/Shibboleth.sso', // fix login redirect
 				'wpmucdn.com/jbtest': 'wpmucdn.com/blogs.furman.edu',

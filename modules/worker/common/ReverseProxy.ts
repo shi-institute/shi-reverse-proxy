@@ -12,10 +12,24 @@ interface ReverseProxyOptions {
 	spoofOrigin?: boolean;
 	spoofHost?: boolean;
 	/**
-	 * Whether to inject a sttyle in the head that opts into view transitions for navigation.
+	 * Whether to inject a style in the head that opts into view transitions for navigation.
 	 * @default true
 	 */
 	injectViewTransition?: boolean;
+	/**
+	 * Speculation rules to inject into every HTML response served by this proxy.
+	 *
+	 * The value is serialised and injected as a `<script type="speculationrules">` tag
+	 * inside `<head>`. Browsers that do not support the Speculation Rules API will
+	 * safely ignore the unknown script type.
+	 *
+	 * @example
+	 * // Prefetch same-origin links when the user hovers over them.
+	 * speculationRules: {
+	 *   prefetch: [{ where: { href_matches: '/*' }, eagerness: 'moderate' }],
+	 * }
+	 */
+	speculationRules?: SpeculationRulesConfig;
 	/**
 	 * Runs after the proxy has performed its built-in URL replacements on the response body and
 	 * has applied the string replacements, allowing you to perform any additional custom replacements.
@@ -39,6 +53,7 @@ export class ReverseProxy {
 	private spoofOrigin: boolean;
 	private spoofHost: boolean;
 	private injectViewTransition: boolean;
+	private speculationRules?: SpeculationRulesConfig;
 	private afterBodyReplacements?: ReverseProxyOptions['afterBodyReplacements'];
 
 	constructor({
@@ -49,6 +64,7 @@ export class ReverseProxy {
 		spoofOrigin = true,
 		spoofHost = true,
 		injectViewTransition = true,
+		speculationRules,
 		afterBodyReplacements,
 	}: ReverseProxyOptions) {
 		if (!originServer) {
@@ -70,6 +86,7 @@ export class ReverseProxy {
 		this.spoofOrigin = spoofOrigin;
 		this.spoofHost = spoofHost;
 		this.injectViewTransition = injectViewTransition;
+		this.speculationRules = speculationRules;
 		this.afterBodyReplacements = afterBodyReplacements;
 	}
 
@@ -294,6 +311,13 @@ export class ReverseProxy {
 			if (this.injectViewTransition) {
 				// inject a style that opts into view transitions for navigation
 				text = text.replace('<head>', '<head><style>@view-transition { navigation: auto; }</style>');
+			}
+
+			if (this.speculationRules) {
+				// Inject the speculation rules as an inline <script type="speculationrules"> tag.
+				// Browsers that do not support the API safely ignore the unknown script type.
+				const rulesJson = JSON.stringify(this.speculationRules);
+				text = text.replace('</head>', `<script type="speculationrules">${rulesJson}</script></head>`);
 			}
 
 			// also perform any additional string replacements
