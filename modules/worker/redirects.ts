@@ -24,6 +24,8 @@ export const redirects: Record<string, string> = {
 	// filestore
 	'/filestore/Kolb%20-%20Measuring%20and%20Mapping%20Rural%20Gentrification%20-%20Research%20Brief.pdf':
 		'/research/filestore/Kolb%20-%20Measuring%20and%20Mapping%20Rural%20Gentrification%20-%20Research%20Brief.pdf',
+	'/filestore/green-guide.pdf':
+		'https://furman.sharepoint.com/:b:/s/shi-institute/IQAU16IewG5iQY8fORQjJ8mkAXVDOzEG4R2hvJRtWwN_6vM?e=hArEKd',
 
 	// wordpress
 	'/admin': '/wp-login.php',
