@@ -63,7 +63,7 @@ export async function getFooterHTML(ctx: ExecutionContext) {
 			.replace(/(^|[^{,])\s*body(?=[\s.{#[:#,])/g, '$1 #body')
 			.replace(/(^|[^{,])\s*html(?=[\s.{#[:#,])/g, '$1 #html');
 
-		const html = `<host-element><template shadowrootmode="open"><div id="html"><div id="body">${footerHTML}<style>${allStyles}</style></div></div></template></host-element>`;
+		const html = `<host-element onkeydown="event.stopPropagation();"><template shadowrootmode="open"><div id="html"><div id="body">${footerHTML}<style>${allStyles}</style></div></div></template></host-element>`;
 
 		const responseToCache = new Response(html, {
 			headers: {

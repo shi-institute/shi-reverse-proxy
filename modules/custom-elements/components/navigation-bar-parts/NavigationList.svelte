@@ -86,7 +86,6 @@
 						target={useNewTab ? '_blank' : '_self'}
 						rel="noopener noreferrer"
 						onclick={onItemClick}
-						onkeydown={(evt) => evt.stopPropagation()}
 					>
 						<span>{item.label}</span>
 					</a>
@@ -147,7 +146,6 @@
 												target={useNewTab ? '_blank' : '_self'}
 												rel="noopener noreferrer"
 												onclick={onItemClick}
-												onkeydown={(evt) => evt.stopPropagation()}
 											>
 												<span>{child.label}</span>
 											</a>
@@ -174,7 +172,6 @@
 											target={useNewTab ? '_blank' : '_self'}
 											rel="noopener noreferrer"
 											onclick={onItemClick}
-											onkeydown={(evt) => evt.stopPropagation()}
 										>
 											<span>{child.label}</span>
 										</a>

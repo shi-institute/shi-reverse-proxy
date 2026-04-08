@@ -141,19 +141,32 @@ export async function getInjectableNavigation(
 
 	const primaryMenuBarHtml = render(
 		'PrimaryNavigationBar',
-		{ props: { bar: menuData.primary, menu: menuData.menu, transformHref } },
+		{
+			props: { bar: menuData.primary, menu: menuData.menu, transformHref },
+			attributes: {
+				// furman.edu has a script that will intercept and break keyboard events,
+				// so we need to prevent the events from propagating to the furman.edu scripts
+				onkeydown: 'event.stopPropagation();',
+			},
+		},
 		{ url: currentUrl },
 	);
 
 	const secondaryMenuBarHtml = render(
 		'SecondaryNavigationBar',
-		{ props: { left: menuData.secondaryLeft, right: menuData.secondaryRight, transformHref } },
+		{
+			props: { left: menuData.secondaryLeft, right: menuData.secondaryRight, transformHref },
+			attributes: { onkeydown: 'event.stopPropagation();' },
+		},
 		{ url: currentUrl },
 	);
 
 	const adminBarHtml = render(
 		'AdminBar',
-		{ props: { adminHref: ctx.props.adminBarHref || 'https://blogs.furman.edu/jbtest/wp-admin' } },
+		{
+			props: { adminHref: ctx.props.adminBarHref || 'https://blogs.furman.edu/jbtest/wp-admin' },
+			attributes: { onkeydown: 'event.stopPropagation();' },
+		},
 		{ url: currentUrl },
 	);
 
