@@ -6,7 +6,7 @@ import { attributesToProps } from 'virtual:custom-elements-manifest';
 import * as allCustomElementComponents from '../custom-elements/components';
 import { fetchStorage } from '../worker';
 import * as components from './components';
-import { kebabCaseToPascalCase, pascalCaseToKebabCase } from './utils';
+import { hash, kebabCaseToPascalCase, pascalCaseToKebabCase, uint8ToHex } from './utils';
 import { setUrlForSsr } from './utils/navigation';
 
 type Components = typeof components;
@@ -64,7 +64,7 @@ export async function render<N extends ComponentName>(
 	let renderedHtml = `<${tag} ${attributesString}><template shadowrootmode="open">${head}${body}</template>${options.slotHTML || ''}</${tag}>`;
 
 	// hash the rendered HTML to create a deterministic ID that can be used to identify the rendered HTML
-	const renderedHtmlHash = uint8ToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(renderedHtml))));
+	const renderedHtmlHash = await hash(renderedHtml);
 
 	// insert hash as a data attribute to the rendered HTML
 	renderedHtml = renderedHtml.replace(`<${tag} `, `<${tag} data-hydrate-id="${renderedHtmlHash}" `);
@@ -85,12 +85,6 @@ export async function render<N extends ComponentName>(
 	Object.defineProperty(returnValue, 'tag', { value: tag });
 	Object.defineProperty(returnValue, 'data', { value: data });
 	return returnValue as string & { hashes: typeof hashes; head: typeof head; rawBody: typeof body; tag: typeof tag; data: typeof data };
-}
-
-function uint8ToHex(bytes: Uint8Array): string {
-	return Array.from(bytes)
-		.map((b) => b.toString(16).padStart(2, '0'))
-		.join('');
 }
 
 function unevalProps(props: Record<string, unknown>) {

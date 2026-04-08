@@ -1,6 +1,7 @@
 <svelte:options customElement={{}} />
 
 <script lang="ts" module>
+	import { hashSync } from '../../utils';
 	import { url } from '../../utils/navigation';
 
 	export interface NavigationListProps {
@@ -68,8 +69,8 @@
 </script>
 
 <ul class:vertical={direction === 'vertical'} class="nav-list" bind:this={navListElement}>
-	{#each items as item}
-		{@const itemId = 'i' + crypto.randomUUID()}
+	{#each items as item, index}
+		{@const itemId = 'i' + index + hashSync(JSON.stringify(item))}
 		{#if item.type === 'divider'}
 			<hr />
 		{:else if item.type === 'spacer'}
