@@ -50,6 +50,16 @@ export default {
 				'name="coblocks-verify-email" autocomplete="off" placeholder="Email"': `name="coblocks-verify-email" autocomplete="off" placeholder="Email" data-1p-ignore`,
 			},
 			async afterBodyReplacements(body, requestUrl, contentType) {
+				// ensure that the sitemap always points to the worker URL instead of the blog server
+				if (
+					contentType.includes('text/xml') &&
+					originalRequestUrl.searchParams.get('dynamic-sitemap') === '1' &&
+					body instanceof ArrayBuffer
+				) {
+					const bodyText = new TextDecoder().decode(body);
+					return bodyText.replaceAll(BLOG_ORIGIN + SHI_BLOG_BASE, requestUrl.origin);
+				}
+
 				if (!contentType.includes('text/html') || typeof body !== 'string') {
 					return;
 				}
@@ -95,8 +105,9 @@ export default {
 
 		// We do not want to cache the contact page since the page content changes based on user input.
 		const skipCachePaths = ['/contact/', '/wp-login.php'];
-		if (skipCachePaths.includes(requestUrl.pathname)) {
-			console.debug('Skipping cache for path:', requestUrl.pathname);
+		const isSiteMap = requestUrl.pathname === '/' && requestUrl.searchParams.get('dynamic-sitemap') === '1';
+		if (skipCachePaths.includes(requestUrl.pathname) || isSiteMap) {
+			console.debug('Skipping cache for URL:', requestUrl.href);
 			return blogProxy.fetch(request.current);
 		}
 
