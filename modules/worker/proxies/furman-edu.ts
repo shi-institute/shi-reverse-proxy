@@ -15,6 +15,14 @@ const PEOPLE_BASE = '/people';
 
 const approvedPersonTypes = ['staff', 'affiliates', 'fellows'];
 
+// These paths are known paths that do not contain randomly generated IDs.
+// Furman's website has randomly generated IDs in the HTML that
+// change on every request and cause cache misses. It would quickly use up the
+// limited amount of daily KV writes. The edge cache will still be in use
+// for all paths. We may need to add to this list over time as we determine
+// other safe paths that we want to cache.
+const approvedOriginalKeyValuePaths = ['/', '/students/'];
+
 /**
  * Proxies all requests for the following:
  *
@@ -197,10 +205,7 @@ export default {
 		const proxyResponse = await fuProxy.fetchStaleWhileRevalidate(request.current, ctx, {
 			maxStaleAge: 43200, // 12 hours
 			cacheOptions: {
-				// false because Furman's website has randomly generated IDs in the HTML that
-				// change on every request and cause cache misses. It would quickly use up the
-				// limited amount of daily KV writes. The edge cache will still be in use.
-				useKV: false,
+				useKV: approvedOriginalKeyValuePaths.includes(originalRequestUrl.pathname + originalRequestUrl.search),
 				neverExpireKV: false,
 			},
 		});
