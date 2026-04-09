@@ -39,8 +39,37 @@ export default {
 		const isShiInstituteRequest = requestUrl.pathname.startsWith(SHI_INSTITUTE_BASE);
 		const isFurmanThemeAssetsRequest = requestUrl.pathname.startsWith(FURMAN_THEME_ASSETS_BASE);
 		const isPeopleRequest = requestUrl.pathname.startsWith(PEOPLE_BASE) && requestUrl.pathname.split('/').length >= 3; // only match /
-		if (!isShiInstituteRequest && !isFurmanThemeAssetsRequest && !isPeopleRequest) {
+		const isImmunity360Request = requestUrl.searchParams.has('wsidchk') && requestUrl.searchParams.has('pdata');
+		if (!isShiInstituteRequest && !isFurmanThemeAssetsRequest && !isPeopleRequest && !isImmunity360Request) {
 			return;
+		}
+
+		// Sometimes, the page will trigger an Immunity360 check to confirm the validity
+		// of the browser. When the check finishes, it goes to /<random>/?wsidchk=<random>&pdata=<urlencoded URL>.
+		// To prevent a 404, we need to then redirect back to the original URL, which is stored in pdata.
+		if (isImmunity360Request) {
+			const pdata = requestUrl.searchParams.get('pdata');
+			if (!pdata) {
+				if (process.env.DEVELOPMENT) {
+					console.debug('Rejecting Immunity360 request because pdata parameter is missing');
+				}
+				return;
+			}
+
+			// The pdata parameter is URL-encoded twice, so we need to decode it twice to get the original URL.
+			const decodedPdata = decodeURIComponent(pdata);
+
+			const pdataUrl = new URL(decodedPdata);
+			if (pdataUrl.origin !== 'https://www.furman.edu') {
+				if (process.env.DEVELOPMENT) {
+					console.debug(`Rejecting Immunity360 request with invalid pdata URL: ${pdataUrl}`);
+				}
+			}
+
+			// Swap the origin of the pdata URL to be the same as the request URL
+			// so we do not redirect to furman.edu.
+			const destinationUrl = new URL(pdataUrl.pathname + pdataUrl.search, requestUrl.origin);
+			return Response.redirect(destinationUrl, 302);
 		}
 
 		// re-write the request URL to point to furman.edu/people/{slug} when it is a person page
