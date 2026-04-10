@@ -7,13 +7,14 @@
 	export interface MenuProps {
 		items: NavigationListItem[];
 		transformHref?: NavigationListProps['transformHref'];
+		popoverid?: string;
 	}
 </script>
 
 <script lang="ts">
 	import Search from './Search.svelte';
 
-	let { items, transformHref }: MenuProps = $props();
+	let { items, transformHref, popoverid }: MenuProps = $props();
 
 	let dialogElement = $state<HTMLDialogElement | null>(null);
 
@@ -28,7 +29,9 @@
 		}
 	}
 
-	function openDialog() {
+	function openDialog(event: MouseEvent) {
+		event.preventDefault();
+
 		if (dialogElement) {
 			dialogElement.showModal();
 		}
@@ -54,7 +57,7 @@
 	}
 </script>
 
-<button class="menu-button" aria-label="Open menu" onclick={openDialog}>
+<button class="menu-button" aria-label="Open menu" onclick={openDialog} popovertarget={popoverid} popovertargetaction="toggle">
 	<svg xmlns="http://www.w3.org/2000/svg" width="26" viewBox="0 0 40 14">
 		<g transform="translate(0.397 1.088)">
 			<line x2="40" transform="translate(-0.397 -0.088)" fill="none" stroke="currentColor" stroke-width="2" /><line
@@ -70,7 +73,7 @@
 	Menu
 </button>
 
-<dialog bind:this={dialogElement} onclick={closeDialogOnClickOutside} class:closing>
+<dialog bind:this={dialogElement} id={popoverid} onclick={closeDialogOnClickOutside} class:closing popover="manual">
 	<header>
 		<a href="/" aria-label="Home">
 			<svg xmlns="http://www.w3.org/2000/svg" height="40" viewBox="0 0 36.036 36.03" fill="currentColor">
@@ -95,7 +98,7 @@
 			}}
 		/>
 
-		<button class="nav-close-button menu-button" onclick={closeDialog}>
+		<button class="nav-close-button menu-button" onclick={closeDialog} popovertarget={popoverid} popovertargetaction="hide">
 			<svg xmlns="http://www.w3.org/2000/svg" width="48" viewBox="0 0 60 60">
 				<circle cx="30" cy="30" r="30" fill="#F9F5FF" />
 				<path d="M19 19 L41 41 M41 19 L19 41" stroke="#1A083D" stroke-width="4" stroke-linecap="round" />

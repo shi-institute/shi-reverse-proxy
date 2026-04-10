@@ -43,7 +43,7 @@
 
 	<Search />
 
-	<Menu items={menu} />
+	<Menu items={menu} popoverid="primary-menu" />
 </div>
 
 <style>
