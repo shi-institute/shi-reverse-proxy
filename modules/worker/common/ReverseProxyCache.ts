@@ -8,9 +8,13 @@ export interface ReverseProxyCacheOptions {
 	 * You will need to manually refresh the key-value cache. */
 	neverExpireKV?: boolean;
 	/**
-	 * If true
+	 * @default false
 	 */
 	useKV?: boolean;
+	/**
+	 * @default true
+	 */
+	useEdge?: boolean;
 }
 
 type ReverseProxyCacheMatchMissOrBypassResult = { type: 'MISS' | 'BYPASS'; headersToSet: Headers };
@@ -168,7 +172,7 @@ export class ReverseProxyCache<Props> {
 
 	private async internal__match(
 		request: Request,
-		{ useKv = this.options.useKV, useEdge = true } = {},
+		{ useKv = this.options.useKV ?? false, useEdge = this.options.useEdge ?? true } = {},
 	): Promise<ReverseProxyCacheMatchResult> {
 		const requestUrl = new URL(request.url);
 		const startTime = performance.now();
@@ -409,6 +413,10 @@ export class ReverseProxyCache<Props> {
 	 * This method sets the Last-Modified header on the response if it is not already set.
 	 */
 	async putInEdgeCache(request: Request, response: Response) {
+		if (!this.options.useEdge) {
+			return;
+		}
+
 		const requestUrl = new URL(request.url);
 		response = await this.prepareHeadersForCache(requestUrl, response);
 
@@ -478,6 +486,10 @@ export class ReverseProxyCache<Props> {
 	}
 
 	async readFromEdgeCache(request: Request) {
+		if (!this.options.useEdge) {
+			return undefined;
+		}
+
 		return await this.edgeCache.match(request.url);
 	}
 

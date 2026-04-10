@@ -11,6 +11,28 @@
 		}
 	}
 </style>
+
+<!-- If there is no JavaScript, undo the dark mode support styles from above. -->
+<noscript>
+	<style>
+		:root {
+			color-scheme: light;
+		}
+		#app {
+			opacity: 1;
+		}
+	</style>
+</noscript>
+
+<!-- These scripts implement dark mode, but they require JavaScript to be enabled., -->
+<script>
+	const appElementInstant = document.querySelector('#app');
+	if (appElementInstant) {
+		appElementInstant.style.opacity = '0';
+	}
+
+	document.documentElement.classList.add('js-enabled');
+</script>
 <script type="module">
 	import * as DarkReader from 'https://esm.run/darkreader';
 
@@ -33,14 +55,16 @@
 		appElement.style.opacity = '1';
 	}
 </script>
+
 <style>
 	@media (prefers-color-scheme: dark) {
-		.primary-hero-left-caption::before,
-		.page-banner.tertiary-hero .caption::before,
-		.module-content-block-media-carousel-slider::before {
+		html.js-enabled .primary-hero-left-caption::before,
+		html.js-enabled .page-banner.tertiary-hero .caption::before,
+		html.js-enabled .module-content-block-media-carousel-slider::before {
 			filter: invert(80%);
 		}
 	}
+
 	.module-content-block-media-carousel-slider .slick-dots li.slick-active a {
 		--darkreader-text-ffffff: #000;
 	}
