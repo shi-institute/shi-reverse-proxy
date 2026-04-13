@@ -87,7 +87,12 @@ export class ReverseProxyCache<Props> {
 			throw new Error('REVERSE_PROXY_KV_CACHE must be defined in kv_namespaces');
 		}
 
-		return new ReverseProxyCache(edgeCache, kvCache, ctx, options);
+		return new ReverseProxyCache(edgeCache, kvCache, ctx, {
+			// set defaults for the reverse proxy options for all undefined options
+			neverExpireKV: options?.neverExpireKV ?? false,
+			useEdge: options?.useEdge ?? true,
+			useKV: options?.useKV ?? false,
+		} satisfies Required<ReverseProxyCacheOptions>);
 	}
 
 	/**
@@ -172,7 +177,7 @@ export class ReverseProxyCache<Props> {
 
 	private async internal__match(
 		request: Request,
-		{ useKv = this.options.useKV ?? false, useEdge = this.options.useEdge ?? true } = {},
+		{ useKv = this.options.useKV, useEdge = this.options.useEdge } = {},
 	): Promise<ReverseProxyCacheMatchResult> {
 		const requestUrl = new URL(request.url);
 		const startTime = performance.now();
