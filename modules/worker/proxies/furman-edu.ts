@@ -39,19 +39,19 @@ export default {
 		const isShiInstituteRequest = requestUrl.pathname.startsWith(SHI_INSTITUTE_BASE);
 		const isFurmanThemeAssetsRequest = requestUrl.pathname.startsWith(FURMAN_THEME_ASSETS_BASE);
 		const isPeopleRequest = requestUrl.pathname.startsWith(PEOPLE_BASE) && requestUrl.pathname.split('/').length >= 3; // only match /
-		const isImmunity360Request = requestUrl.searchParams.has('wsidchk') && requestUrl.searchParams.has('pdata');
-		if (!isShiInstituteRequest && !isFurmanThemeAssetsRequest && !isPeopleRequest && !isImmunity360Request) {
+		const isImunify360Request = requestUrl.searchParams.has('wsidchk') && requestUrl.searchParams.has('pdata');
+		if (!isShiInstituteRequest && !isFurmanThemeAssetsRequest && !isPeopleRequest && !isImunify360Request) {
 			return;
 		}
 
-		// Sometimes, the page will trigger an Immunity360 check to confirm the validity
+		// Sometimes, the page will trigger an Imunify360 check to confirm the validity
 		// of the browser. When the check finishes, it goes to /<random>/?wsidchk=<random>&pdata=<urlencoded URL>.
 		// To prevent a 404, we need to then redirect back to the original URL, which is stored in pdata.
-		if (isImmunity360Request) {
+		if (isImunify360Request) {
 			const pdata = requestUrl.searchParams.get('pdata');
 			if (!pdata) {
 				if (process.env.DEVELOPMENT) {
-					console.debug('Rejecting Immunity360 request because pdata parameter is missing');
+					console.debug('Rejecting Imunify360 request because pdata parameter is missing');
 				}
 				return;
 			}
@@ -62,7 +62,7 @@ export default {
 			const pdataUrl = new URL(decodedPdata);
 			if (pdataUrl.origin !== 'https://www.furman.edu') {
 				if (process.env.DEVELOPMENT) {
-					console.debug(`Rejecting Immunity360 request with invalid pdata URL: ${pdataUrl}`);
+					console.debug(`Rejecting Imunify360 request with invalid pdata URL: ${pdataUrl}`);
 				}
 			}
 
@@ -235,6 +235,7 @@ export default {
 			maxStaleAge: 43200, // 12 hours
 			cacheOptions: {
 				useKV: approvedOriginalKeyValuePaths.includes(originalRequestUrl.pathname + originalRequestUrl.search),
+				useEdge: !isImunify360Request, // NEVER cache Imunify360 checks so the cache never responds with a stale check
 				neverExpireKV: false,
 			},
 		});
