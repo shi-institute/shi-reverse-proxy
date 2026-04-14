@@ -114,8 +114,11 @@ export class ReverseProxy {
 
 		// We always want the latest version of the resource from the origin server.
 		// Cloudflare will handle cahcing on the worker side.
-		const cacheBustDateString = Date.now().toString();
-		originUrl.searchParams.set('_cache-bust', cacheBustDateString);
+		const cacheBustAlreadyExists = originUrl.searchParams.has('_cache-bust');
+		if (!cacheBustAlreadyExists) {
+			const cacheBustDateString = Date.now().toString();
+			originUrl.searchParams.set('_cache-bust', cacheBustDateString);
+		}
 		requestHeaders.set('Cache-Control', 'no-cache');
 		requestHeaders.set('Pragma', 'no-cache');
 
@@ -167,11 +170,11 @@ export class ReverseProxy {
 			const proxiedLocation = this.toProxyServerUrl(location, requestUrl);
 
 			// Remove the cache-bust search param from the Location header
-			// if it from the one we added to the request URL. If we do not
-			// remove it, the client will see a URL with the cache-bust param.
-			// It is for internal use only.
-			const cacheBustValue = proxiedLocation.searchParams.get('_cache-bust')!;
-			if (cacheBustValue === cacheBustDateString) {
+			// we added to the request URL. If we do not remove it, the client
+			// will see a URL with the cache-bust param even though the client
+			// did not specify it.
+			// If the client did not specify it, the param is for internal use only.
+			if (!cacheBustAlreadyExists) {
 				proxiedLocation.searchParams.delete('_cache-bust');
 			}
 

@@ -36,8 +36,7 @@ export const redirects: Record<string, string> = {
 	'/shi-institute/wp-content/themes/furman/assets/favicon.png': '/favicon.svg',
 	'/favicon.ico': '/favicon.svg',
 	'/favicon.svg': '/files/2026/03/shi-favicon.svg',
-	'/shi-institute': '/',
-	'/shi-institute/new-home/': '/',
+	'/shi-institute/new-home/': '/shi-institute/',
 };
 
 // Format: original: alias

@@ -7,9 +7,10 @@ import { rewrites } from '../../redirects';
  */
 export function replaceAliasPaths(body: string) {
 	return body.replaceAll(new RegExp(`\\bhref\\s*=\\s*["'](\\/[^"']*)["']`, 'gi'), (match, originalHref, value) => {
-		if (Object.keys(rewrites).includes(originalHref)) {
+		const originalUrl = new URL(originalHref, 'http://localhost');
+		if (Object.keys(rewrites).includes(originalUrl.pathname)) {
 			const aliasPath = rewrites[originalHref];
-			return `href="${aliasPath}"`;
+			return `href="${aliasPath + originalUrl.search}"`;
 		}
 		return match;
 	});

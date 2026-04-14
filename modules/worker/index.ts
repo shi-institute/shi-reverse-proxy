@@ -27,7 +27,7 @@ export default {
 
 			// if there is an alias for the current path, redirect to the alias
 			if (rewrites[requestUrl.pathname]) {
-				return Response.redirect(new URL(rewrites[requestUrl.pathname]!, requestUrl.origin), 302);
+				return Response.redirect(new URL(rewrites[requestUrl.pathname]! + requestUrl.search, requestUrl.origin), 302);
 			}
 
 			// if the current path is an alias, rewrite it to the original path so that
@@ -36,7 +36,7 @@ export default {
 				const realPathname = Object.keys(rewrites).find((key) => rewrites[key] === requestUrl.pathname);
 
 				// skip rewriting home page URL when it is a search page (has a ?s in the url)
-				const shouldSkipRewrite = requestUrl.pathname === '/' && !!requestUrl.searchParams.toString();
+				const shouldSkipRewrite = requestUrl.pathname === '/' && requestUrl.searchParams.has('s')
 
 				if (realPathname && !shouldSkipRewrite) {
 					requestUrl.pathname = realPathname;
