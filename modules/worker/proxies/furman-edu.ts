@@ -1,3 +1,4 @@
+import fakeImmunify360Response from '../../static/fake-immunify-360.html';
 import furmanDarkModeOverrides from '../../static/furman-edu-dark-mode.html';
 import furmanHomeOverrides from '../../static/furman-edu-home-overrides.css';
 import furmanOverrides from '../../static/furman-edu-overrides.css';
@@ -149,6 +150,10 @@ export default {
 				],
 			},
 			afterBodyReplacements: async (body, requestUrl, contentType) => {
+				if (contentType.includes('text/html') && typeof body === 'string' && requestUrl.searchParams.has('fakeImmunify360')) {
+					body = fakeImmunify360Response;
+				}
+
 				if (contentType.includes('text/html') && typeof body === 'string') {
 					// hide furman.edu navigation elements
 					body = body.replace(
@@ -188,11 +193,16 @@ export default {
 					const skipLinkOuterHTML = body.match(/<a\b[^>]*\brole-action\s*=\s*["']skip-link["'][^>]*>[\s\S]*?<\/a>/i)?.[0];
 					if (skipLinkOuterHTML) {
 						body = body.replace(skipLinkOuterHTML, skipLinkOuterHTML + (await getInjectableNavigation(ctx, originalRequestUrl)));
+					} else {
+						body = body.replace(/(<body[^>]*>)/i, `$1${await getInjectableNavigation(ctx, originalRequestUrl)}`);
+						if (process.env.DEVELOPMENT) {
+							console.debug('Could not find skip link to inject navigation after. Injected navigation at start of body instead');
+						}
 					}
 
 					// inject CSS overrides
 					body = body.replace(
-						'<meta charset="utf-8">',
+						/<meta charset="utf-?8"\s*\/?>/i,
 						`<meta charset="utf-8"><style>${furmanOverrides}</style><!-- dark-mode --><!-- home-mods --><!-- reduce-motion-mods -->`,
 					);
 
