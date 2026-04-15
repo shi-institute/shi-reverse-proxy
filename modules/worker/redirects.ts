@@ -45,6 +45,7 @@ export const redirects: Record<string, string> = {
 // but the client will still see the alias path in the browser.
 export const rewrites: Record<string, string> = {
 	'/shi-institute/': '/', // replace home page with furman.edu/shi-institute
+	'/shi-institute/posts/': '/posts/',
 	'/shi-institute/sustainability/student-experiences/': '/students/',
 	'/shi-institute/sustainability/student-fellows/': '/students/fellowships/',
 	'/shi-institute/sustainability/community-conservation-corps/': '/community-conservation-corps/',
