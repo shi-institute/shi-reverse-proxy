@@ -10,6 +10,8 @@
 			itemsTextSingular: { reflect: true, type: 'String', attribute: 'items-text-singular' },
 			variant: { reflect: true, type: 'String', attribute: 'variant' },
 			popoverId: { reflect: true, type: 'String', attribute: 'popover-id' },
+			noTextTransform: { reflect: true, type: 'Boolean', attribute: 'no-text-transform' },
+			direction: { reflect: true, type: 'String', attribute: 'direction' },
 		},
 	}}
 />
@@ -53,6 +55,12 @@
 		 * server. If the ID changes on every render, the cache will be always be outdated.
 		 */
 		popoverId?: string;
+		/**
+		 * Disables text-transform styles on the trigger button for variants that
+		 * would normally apply text-transform: uppercase.
+		 */
+		noTextTransform?: boolean;
+		direction?: 'up' | 'down';
 	}
 </script>
 
@@ -68,6 +76,8 @@
 		itemsTextPlural = 'items',
 		itemsTextSingular = 'item',
 		variant = 'default',
+		noTextTransform = false,
+		direction = 'down',
 		popoverId: _popoverId,
 	}: ComboboxProps = $props();
 	const closeOnSelect = $derived(_closeOnSelect ?? !multiple);
@@ -408,6 +418,7 @@
 		popovertargetaction="toggle"
 		class:variant-button={variant === 'button' || variant.startsWith('button--')}
 		class:variant-button--white={variant === 'button--white'}
+		class:no-text-transform={noTextTransform}
 		role="listbox"
 		aria-multiselectable={multiple}
 		aria-label={placeholder}
@@ -417,7 +428,7 @@
 			: selectedOptions.length > 0
 				? `${selectedOptions.length} ${itemsTextPlural}`
 				: placeholder}
-		<svg width="16" height="16" viewBox="0 0 24 24">
+		<svg width="16" height="16" viewBox="0 0 24 24" class:direction-up={direction === 'up'}>
 			<path
 				d="M4.293 8.293a1 1 0 0 1 1.414 0L12 14.586l6.293-6.293a1 1 0 1 1 1.414 1.414l-7 7a1 1 0 0 1-1.414 0l-7-7a1 1 0 0 1 0-1.414Z"
 				fill="currentColor"
@@ -427,6 +438,7 @@
 	<div
 		class="form"
 		class:hasOpened
+		class:direction-up={direction === 'up'}
 		inert={!open}
 		popover="auto"
 		id={popoverId}
@@ -523,6 +535,9 @@
 		--box-shadow-color: var(--shi-color-blue);
 		color: var(--shi-color--on-blue);
 	}
+	.label.no-text-transform {
+		text-transform: none;
+	}
 
 	.label svg {
 		width: 16px;
@@ -532,6 +547,12 @@
 	}
 	.select.open .label svg {
 		transform: rotate(-180deg);
+	}
+	.label svg.direction-up {
+		transform: rotate(180deg);
+	}
+	.select.open .label svg.direction-up {
+		transform: rotate(0deg);
 	}
 
 	::slotted(optgroup) {
@@ -544,7 +565,7 @@
 		position-area: bottom span-right;
 		width: anchor-size(width);
 		box-sizing: border-box;
-		margin: -1 0 0;
+		margin: -1px 0 0;
 		inset: unset;
 		display: block;
 		border: 1px solid var(--shi-divider-color);
@@ -567,6 +588,18 @@
 			animation: popover-close var(--shi-transition-200ms) ease forwards;
 		}
 	}
+	.form.direction-up {
+		position-area: top span-right;
+		margin: 0 0 -1px;
+
+		&:popover-open {
+			animation-name: popover-open-direction-up;
+		}
+
+		&.hasOpened:not(:popover-open) {
+			animation-name: popover-close-direction-up;
+		}
+	}
 
 	@keyframes popover-open {
 		from {
@@ -587,6 +620,28 @@
 		to {
 			opacity: 0;
 			transform: translateY(-4px);
+		}
+	}
+
+	@keyframes popover-open-direction-up {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes popover-close-direction-up {
+		from {
+			opacity: 1;
+			transform: translateY(0);
+		}
+		to {
+			opacity: 0;
+			transform: translateY(4px);
 		}
 	}
 
