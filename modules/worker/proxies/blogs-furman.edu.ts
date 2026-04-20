@@ -111,7 +111,7 @@ export default {
 			return blogProxy.fetch(request.current);
 		}
 
-		return blogProxy.fetchStaleWhileRevalidate(request.current, ctx, {
+		const response = await blogProxy.fetchStaleWhileRevalidate(request.current, ctx, {
 			maxStaleAge: 43200, // 12 hours
 			cacheOptions: {
 				useKV: true,
@@ -120,5 +120,19 @@ export default {
 				neverExpireKV: true,
 			},
 		});
+
+		// allow localhost:any-port and *.shi.institute to access /files/fonts/* resources
+		if (requestUrl.pathname.startsWith('/files/fonts/')) {
+			const allowedOrigins = [/^https?:\/\/localhost:\d+$/, /\.shi\.institute$/];
+			const origin = request.current.headers.get('origin');
+			if (
+				origin &&
+				allowedOrigins.some((allowedOrigin) => (typeof allowedOrigin === 'string' ? origin === allowedOrigin : allowedOrigin.test(origin)))
+			) {
+				response.headers.set('Access-Control-Allow-Origin', origin);
+			}
+		}
+
+		return response;
 	},
 } satisfies ReverseProxyHandler<{ adminBarHref?: string }>;
