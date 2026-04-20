@@ -36,7 +36,7 @@ export default {
 				const realPathname = Object.keys(rewrites).find((key) => rewrites[key] === requestUrl.pathname);
 
 				// skip rewriting home page URL when it is a search page (has a ?s in the url)
-				const shouldSkipRewrite = requestUrl.pathname === '/' && requestUrl.searchParams.has('s')
+				const shouldSkipRewrite = requestUrl.pathname === '/' && requestUrl.searchParams.has('s');
 
 				if (realPathname && !shouldSkipRewrite) {
 					requestUrl.pathname = realPathname;
@@ -51,6 +51,7 @@ export default {
 
 			// proxy remaining requests to their respective destinations
 			const proxyQueue = new ReverseProxyHandlerQueue<{ adminBarHref?: string }>();
+			proxyQueue.enqueue(proxies.upstateScLulc);
 			proxyQueue.enqueue(proxies.interactiveWeb);
 			proxyQueue.enqueue(proxies.furmanEdu);
 			proxyQueue.enqueue(proxies.sli);
