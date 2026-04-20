@@ -1,4 +1,5 @@
 import z from 'zod';
+import { getInjectableNavigation } from './menu';
 import { rewrites } from './redirects';
 
 const BLOG = 'https://blogs.furman.edu/jbtest';
@@ -6,7 +7,11 @@ const FUWEB = 'https://www.furman.edu/shi-institute';
 const FUWEBROOT = 'https://www.furman.edu';
 
 export default {
-	async fetch(request: Request<unknown, IncomingRequestCfProperties<unknown>>, env: Env, ctx: ExecutionContext): Promise<Response | void> {
+	async fetch(
+		request: Request<unknown, IncomingRequestCfProperties<unknown>>,
+		env: Env,
+		ctx: ExecutionContext<{ adminBarHref?: string }>,
+	): Promise<Response | void> {
 		const url = new URL(request.url);
 		if (!url.pathname.startsWith('/.api/')) {
 			return;
@@ -167,6 +172,55 @@ export default {
 			return new Response(JSON.stringify(modifiedPosts), {
 				headers: {
 					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+				},
+				status: 200,
+				statusText: 'OK',
+			});
+		}
+
+		if (url.pathname === '/.api/navigation-html') {
+			const passedUrlStr = url.searchParams.get('url');
+			const contextUrl = passedUrlStr ? new URL(passedUrlStr) : url;
+
+			const includeFonts = url.searchParams.get('includeFonts') === 'true';
+
+			let navigationHtml = await getInjectableNavigation(ctx, contextUrl);
+
+			if (includeFonts) {
+				navigationHtml += `
+				<style>
+					@font-face {
+						font-family: "Epilogue";
+						src: url("https://shi.institute/files/fonts/Epilogue-VariableFont_wght.ttf")
+							format("truetype");
+						font-weight: 100 900;
+						font-style: normal;
+						font-display: swap;
+					}
+					@font-face {
+						font-family: 'Oswald';
+						font-style: normal;
+						font-weight: 200 700;
+						font-display: swap;
+						src: url(https://fonts.gstatic.com/s/oswald/v57/TK3iWkUHHAIjg752Fz8Ghe4.woff2) format('woff2');
+						unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+					}
+					@font-face {
+						font-family: 'Oswald';
+						font-style: normal;
+						font-weight: 200 700;
+						font-display: swap;
+						src: url(https://fonts.gstatic.com/s/oswald/v57/TK3iWkUHHAIjg752GT8G.woff2) format('woff2');
+						unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+					}
+				</style>
+				`;
+			}
+
+			return new Response(navigationHtml, {
+				headers: {
+					'Content-Type': 'text/html',
 					'Access-Control-Allow-Origin': '*',
 				},
 				status: 200,
