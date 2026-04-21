@@ -1,6 +1,7 @@
 <svelte:options customElement={{}} />
 
 <script lang="ts" module>
+	import z from 'zod';
 	import { hashSync } from '../../utils';
 	import { url } from '../../utils/navigation';
 
@@ -11,29 +12,40 @@
 		onItemClick?: () => void;
 	}
 
-	export type TopLevelNavigationListItem = NavigationListLinkItemWithChildren | NavigationListItem;
+	const navigationListLinkItemSchema = z.object({
+		type: z.literal('link').optional(),
+		label: z.string(),
+		class: z.string().optional(),
+		href: z.string().optional(),
+	});
+
+	const navigationListDividerItemSchema = z.object({
+		type: z.literal('divider'),
+	});
+
+	const navigationListSpacerItemSchema = z.object({
+		type: z.literal('spacer'),
+		size: z.string(),
+	});
+
+	const navigationListLinkItemWithChildrenSchema = navigationListLinkItemSchema.extend({
+		children: z.array(z.union([navigationListLinkItemSchema, navigationListDividerItemSchema])),
+	});
+
+	export type NavigationListLinkItem = z.infer<typeof navigationListLinkItemSchema>;
+	export type NavigationListDividerItem = z.infer<typeof navigationListDividerItemSchema>;
+	export type NavigationListSpacerItem = z.infer<typeof navigationListSpacerItemSchema>;
+	export type NavigationListLinkItemWithChildren = z.infer<typeof navigationListLinkItemWithChildrenSchema>;
+
+	export const navigationListItemSchema = z.union([
+		navigationListLinkItemWithChildrenSchema,
+		navigationListLinkItemSchema,
+		navigationListDividerItemSchema,
+		navigationListSpacerItemSchema,
+	]);
 
 	export type NavigationListItem = NavigationListLinkItem | NavigationListDividerItem | NavigationListSpacerItem;
-
-	export interface NavigationListLinkItem {
-		type?: 'link';
-		label: string;
-		class?: string;
-		href?: string;
-	}
-
-	export interface NavigationListLinkItemWithChildren extends NavigationListLinkItem {
-		children: (NavigationListLinkItem | NavigationListDividerItem)[];
-	}
-
-	export type NavigationListDividerItem = {
-		type: 'divider';
-	};
-
-	export type NavigationListSpacerItem = {
-		type: 'spacer';
-		size: string;
-	};
+	export type TopLevelNavigationListItem = NavigationListLinkItemWithChildren | NavigationListItem;
 </script>
 
 <script lang="ts">

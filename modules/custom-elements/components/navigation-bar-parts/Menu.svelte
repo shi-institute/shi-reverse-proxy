@@ -8,13 +8,15 @@
 		items: NavigationListItem[];
 		transformHref?: NavigationListProps['transformHref'];
 		popoverid?: string;
+		horizontalMenuButton?: boolean;
+		forceDarkModeMenuButton?: boolean;
 	}
 </script>
 
 <script lang="ts">
 	import Search from './Search.svelte';
 
-	let { items, transformHref, popoverid }: MenuProps = $props();
+	let { items, transformHref, popoverid, horizontalMenuButton = false, forceDarkModeMenuButton = false }: MenuProps = $props();
 
 	let dialogElement = $state<HTMLDialogElement | null>(null);
 
@@ -57,7 +59,15 @@
 	}
 </script>
 
-<button class="menu-button" aria-label="Open menu" onclick={openDialog} popovertarget={popoverid} popovertargetaction="toggle">
+<button
+	class="menu-button"
+	aria-label="Open menu"
+	onclick={openDialog}
+	popovertarget={popoverid}
+	popovertargetaction="toggle"
+	class:horizontal={horizontalMenuButton}
+	class:force-dark={forceDarkModeMenuButton}
+>
 	<svg xmlns="http://www.w3.org/2000/svg" width="26" viewBox="0 0 40 14">
 		<g transform="translate(0.397 1.088)">
 			<line x2="40" transform="translate(-0.397 -0.088)" fill="none" stroke="currentColor" stroke-width="2" /><line
@@ -70,7 +80,7 @@
 			<line x2="40" transform="translate(-0.397 11.912)" fill="none" stroke="currentColor" stroke-width="2" /></g
 		>
 	</svg>
-	Menu
+	<span>Menu</span>
 </button>
 
 <dialog bind:this={dialogElement} id={popoverid} onclick={closeDialogOnClickOutside} class:closing popover="manual">
@@ -148,6 +158,19 @@
 	.menu-button:active {
 		background-color: var(--shi-color-blue);
 		color: var(--shi-color--on-blue);
+	}
+
+	.menu-button.horizontal {
+		flex-direction: row;
+		padding: 0 12px;
+		width: auto;
+	}
+	.menu-button.horizontal > span {
+		text-box: trim-both cap alphabetic;
+	}
+
+	.menu-button.force-dark {
+		color-scheme: dark;
 	}
 
 	dialog {
