@@ -1,0 +1,57 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "Root"
+		},
+		{
+			"path": "apps/reverse-proxy/src/proxies",
+			"name": "Reverse Proxies"
+		},
+		{
+			"path": "apps",
+			"name": "Apps"
+		},
+		{
+			"path": "packages",
+			"name": "Packages"
+		},
+	],
+	"settings": {
+		"files.exclude": {
+			"apps/": true,
+			"packages/": true
+		},
+		"files.associations": {
+			"wrangler.json": "jsonc"
+		},
+		"svelte.plugin.svelte.compilerWarnings": {
+			"options_missing_custom_element": "ignore"
+		},
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"[json]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[jsonc]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		}
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Develop",
+				"command": "pnpm run dev",
+				"type": "shell",
+				"args": [],
+				"presentation": {
+					"reveal": "always",
+					"focus": true
+				},
+				"runOptions": {
+					"runOn": "folderOpen"
+				}
+			}
+		]
+	}
+}

@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    /* Specify a set of bundled library declaration files that describe the target runtime environment. */
+    "lib": [
+      "es2024",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "types": [
+      "node",
+      "@shi-institute/vite-plugin-custom-elements-manifest",
+      "./globals.d.ts",
+      "./env.d.ts"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte"
+  ]
+}

@@ -1,0 +1,264 @@
+import fakeImmunify360Response from '../../public/inject/fake-immunify-360.html?raw';
+import furmanDarkModeOverrides from '../../public/inject/furman-edu-dark-mode.html?raw';
+import furmanHomeOverrides from '../../public/inject/furman-edu-home-overrides.css?raw';
+import furmanOverrides from '../../public/inject/furman-edu-overrides.css?raw';
+import furmanVideoPrefersReducedMotionSupport from '../../public/inject/furman-edu-video-reduce-motion-support.html?raw';
+import type { ReverseProxyHandler } from '../common/Handler';
+import { ReverseProxy } from '../common/ReverseProxy';
+import { replaceAliasPaths } from '../common/utils';
+import { getFooterHTML } from '../footer';
+import { getInjectableNavigation } from '../menu';
+
+const FURMAN_EDU_ORIGIN = 'https://www.furman.edu';
+const SHI_INSTITUTE_BASE = '/shi-institute';
+const FURMAN_THEME_ASSETS_BASE = '/wp-content/themes/furman';
+const PEOPLE_BASE = '/people';
+
+const approvedPersonTypes = ['staff', 'affiliates', 'fellows'];
+
+// These paths are known paths that do not contain randomly generated IDs.
+// Furman's website has randomly generated IDs in the HTML that
+// change on every request and cause cache misses. It would quickly use up the
+// limited amount of daily KV writes. The edge cache will still be in use
+// for all paths. We may need to add to this list over time as we determine
+// other safe paths that we want to cache.
+const approvedOriginalKeyValuePaths = ['/', '/students/'];
+
+/**
+ * Proxies all requests for the following:
+ *
+ * - /shi-institute and its subdirectories to the shi-institute subdirectory on furman.edu
+ * - /wp-content/themes/furman and its subdirectories to the furman theme assets on furman.edu
+ * - /people/{slug} to the corresponding person page on furman.edu, where {slug} is the person's
+ *   slug on furman.edu. This is used for faculty and staff profile pages.
+ *
+ * Additionally, the home page (/) is re-written to show the content from
+ * furman.edu/shi-institute while keeping the URL as / in the browser.
+ */
+export default {
+  async fetch({ request, requestUrl, originalRequestUrl }, env, ctx) {
+    const isShiInstituteRequest = requestUrl.pathname.startsWith(SHI_INSTITUTE_BASE);
+    const isFurmanThemeAssetsRequest = requestUrl.pathname.startsWith(FURMAN_THEME_ASSETS_BASE);
+    const isPeopleRequest = requestUrl.pathname.startsWith(PEOPLE_BASE) && requestUrl.pathname.split('/').length >= 3; // only match /
+    const isImunify360Request = requestUrl.searchParams.has('wsidchk') && requestUrl.searchParams.has('pdata');
+    if (!isShiInstituteRequest && !isFurmanThemeAssetsRequest && !isPeopleRequest && !isImunify360Request) {
+      return;
+    }
+
+    // Sometimes, the page will trigger an Imunify360 check to confirm the validity
+    // of the browser. When the check finishes, it goes to /<random>/?wsidchk=<random>&pdata=<urlencoded URL>.
+    // To prevent a 404, we need to then redirect back to the original URL, which is stored in pdata.
+    if (isImunify360Request) {
+      const pdata = requestUrl.searchParams.get('pdata');
+      if (!pdata) {
+        if (import.meta.env.DEV) {
+          console.debug('Rejecting Imunify360 request because pdata parameter is missing');
+        }
+        return;
+      }
+
+      // The pdata parameter is URL-encoded twice, so we need to decode it twice to get the original URL.
+      const decodedPdata = decodeURIComponent(pdata);
+
+      const pdataUrl = new URL(decodedPdata);
+      if (pdataUrl.origin !== 'https://www.furman.edu') {
+        if (import.meta.env.DEV) {
+          console.debug(`Rejecting Imunify360 request with invalid pdata URL: ${pdataUrl}`);
+        }
+      }
+
+      // Swap the origin of the pdata URL to be the same as the request URL
+      // so we do not redirect to furman.edu.
+      const destinationUrl = new URL(pdataUrl.pathname + pdataUrl.search, requestUrl.origin);
+      return Response.redirect(destinationUrl, 302);
+    }
+
+    // re-write the request URL to point to furman.edu/people/{slug} when it is a person page
+    let personType: string | null = null;
+    if (isPeopleRequest) {
+      const parts = requestUrl.pathname.split('/');
+
+      // only accept /people/{personType}/{slug}/ and /people/{slug}/, but not /people/ or /people/{personType}/
+      if (parts.length < 4) {
+        if (import.meta.env.DEV) {
+          console.debug(`Rejecting request to ${requestUrl.pathname} because it does not have enough parts to be a valid person page`);
+        }
+        return;
+      }
+
+      // structure is /people/{slug}/
+      if (parts.length === 4) {
+        const slug = parts[2];
+
+        if (!slug) {
+          if (import.meta.env.DEV) {
+            console.debug('slug is empty:', { slug, requestUrl });
+          }
+          return;
+        }
+
+        // block slugs that are actually a person type
+        if (approvedPersonTypes.includes(slug)) {
+          if (import.meta.env.DEV) {
+            console.debug(
+              `Rejecting request to ${requestUrl.pathname} because the slug is actually a person type, which is not allowed in the URL structure without a person type`
+            );
+          }
+          return;
+        }
+      }
+
+      // structure is /people/{personType}/{slug}
+      if (parts.length === 5) {
+        const foundPersonType = requestUrl.pathname.split('/')[2] ?? null;
+        if (foundPersonType && approvedPersonTypes.includes(foundPersonType)) {
+          personType = foundPersonType;
+          requestUrl.pathname = requestUrl.pathname.replace(`/people/${personType}/`, '/people/');
+        } else {
+          if (import.meta.env.DEV) {
+            console.debug(`Rejecting request to ${requestUrl.pathname} because it has an invalid person type`);
+          }
+          return;
+        }
+      }
+
+      if (parts.length > 5) {
+        if (import.meta.env.DEV) {
+          console.debug(`Rejecting request to ${requestUrl.pathname} because it has too many parts to be a valid person page`);
+        }
+        return;
+      }
+    }
+
+    // redirect requests for uploaded files instead of proxying
+    if (requestUrl.pathname.includes('wp-content/uploads')) {
+      return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, FURMAN_EDU_ORIGIN), 307);
+    }
+
+    ctx.props.adminBarHref = `${FURMAN_EDU_ORIGIN}${SHI_INSTITUTE_BASE}/wp-admin`;
+
+    const fuProxy = new ReverseProxy({
+      originServer: new URL('https://www.furman.edu/shi-institute'),
+      speculationRules: {
+        prerender: [
+          {
+            where: {
+              and: [{ href_matches: '/*' }, { not: { selector_matches: '[data-no-prefetch], .no-prefetch, .no-prefetch a' } }],
+            },
+            eagerness: 'moderate', // prerender on hover
+          },
+        ],
+      },
+      afterBodyReplacements: async (body, requestUrl, contentType) => {
+        if (contentType.includes('text/html') && typeof body === 'string' && requestUrl.searchParams.has('fakeImmunify360')) {
+          body = fakeImmunify360Response;
+        }
+
+        if (contentType.includes('text/html') && typeof body === 'string') {
+          // hide furman.edu navigation elements
+          body = body.replace(
+            '</head>',
+            `<style>#app > .alert, #app > header, #app > footer, body > footer, .section-menu-wrapper, #section-menu-container { display: none !important; }</style></head>`
+          );
+
+          // Replace all relative paths (href="/something") with absolute paths (href="https://www.furman.edu/something")
+          // except for paths that start with /shi-institute or /people. We only want to proxy the /shi-institute subdirectory,
+          // so we want to keep links to other parts of the furman.edu site on the furman.edu origin.
+          body = body.replace(/(href|src|srcset)=["']\/(?!(?:shi-institute|people))([^"']*)["']/g, (match, attr, value) => {
+            if (attr === 'srcset' && typeof value === 'string') {
+              // handle comma-separated list in srcset
+              const updatedSrcset = value
+                .split(',')
+                .map((item) => {
+                  const parts = item.trim().split(' ');
+                  // If it does not already look like an absolute URL, prepend the furman.edu origin
+                  if (parts[0]?.startsWith('/')) {
+                    parts[0] = `https://www.furman.edu${parts[0]}`;
+                  } else if (!parts[0]?.startsWith('http')) {
+                    parts[0] = `https://www.furman.edu/${parts[0]}`;
+                  }
+                  return parts.join(' ');
+                })
+                .join(', ');
+
+              return `${attr}="${updatedSrcset}"`;
+            }
+
+            return `${attr}="https://www.furman.edu/${value}"`;
+          });
+
+          body = replaceAliasPaths(body);
+
+          // inject our own navigation elements after the skip link for keyboard users
+          const skipLinkOuterHTML = body.match(/<a\b[^>]*\brole-action\s*=\s*["']skip-link["'][^>]*>[\s\S]*?<\/a>/i)?.[0];
+          if (skipLinkOuterHTML) {
+            body = body.replace(skipLinkOuterHTML, skipLinkOuterHTML + (await getInjectableNavigation(ctx, originalRequestUrl)));
+          } else {
+            body = body.replace(/(<body[^>]*>)/i, `$1${await getInjectableNavigation(ctx, originalRequestUrl)}`);
+            if (import.meta.env.DEV) {
+              console.debug('Could not find skip link to inject navigation after. Injected navigation at start of body instead');
+            }
+          }
+
+          // inject CSS overrides
+          body = body.replace(
+            /<meta charset="utf-?8"\s*\/?>/i,
+            `<meta charset="utf-8"><style>${furmanOverrides}</style><!-- dark-mode --><!-- home-mods --><!-- reduce-motion-mods -->`
+          );
+
+          // inject dark mode support via darkreader on approved pages (home page and people pages)
+          if (
+            originalRequestUrl.pathname === '/' ||
+            originalRequestUrl.pathname === '/students/' ||
+            requestUrl.pathname.startsWith('/people/')
+          ) {
+            body = body.replace('<!-- dark-mode -->', furmanDarkModeOverrides);
+          }
+
+          // home page style modifications
+          if (originalRequestUrl.pathname === '/' || originalRequestUrl.pathname === '/students/') {
+            body = body.replace('<!-- home-mods -->', `<style>${furmanHomeOverrides}</style>`);
+            body = body.replace('target="_blank" href="https://shi.institute/about/"', `href="${requestUrl.origin}/about/"`);
+          }
+
+          // use relative paths for shi.institute origin references
+          body = body.replaceAll(new RegExp('https://shi.institute' + '/([^"\' ]*)', 'g'), (match, path) => {
+            return `/${path}`;
+          });
+
+          // disable video autoplay and other animations when prefers-reduced-motion is set to reduced
+          body = body.replace('<!-- reduce-motion-mods -->', furmanVideoPrefersReducedMotionSupport);
+
+          // replace footer with the one from the WordPress blog site
+          const footerHTML = await getFooterHTML(ctx);
+          if (footerHTML) {
+            body = body.replace(/<footer[\s\S]*?<\/footer>/, '');
+            body = body.replace('</body>', `${footerHTML}</body>`);
+          }
+        }
+
+        return body;
+      },
+    });
+
+    const proxyResponse = await fuProxy.fetchStaleWhileRevalidate(request.current, ctx, {
+      maxStaleAge: 43200, // 12 hours
+      cacheOptions: {
+        useKV: approvedOriginalKeyValuePaths.includes(originalRequestUrl.pathname + originalRequestUrl.search),
+        useEdge: !isImunify360Request, // NEVER cache Imunify360 checks so the cache never responds with a stale check
+        neverExpireKV: false,
+      },
+    });
+
+    // Since we want to use our main 404 page, we do not use 404 pages from furman.edu.
+    if (proxyResponse.status !== 404) {
+      return proxyResponse;
+    }
+
+    // In the case of a 404 for a profile page, we need to undo the
+    // URL rewrite so we can show the fallback page on the blog site.
+    if (isPeopleRequest && personType) {
+      requestUrl.pathname = requestUrl.pathname.replace('/people/', `/people/${personType}/`);
+    }
+  },
+} satisfies ReverseProxyHandler<{ adminBarHref?: string }>;

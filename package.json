@@ -1,45 +1,21 @@
 {
-	"name": "shi-reverse-proxy",
-	"version": "0.0.0",
-	"private": true,
-	"engines": {
-		"node": "24"
-	},
-	"engineStrict": true,
-	"scripts": {
-		"deploy": "wrangler deploy --env production",
-		"dev": "wrangler dev --env development --local --test-scheduled",
-		"start": "wrangler dev --env production",
-		"test": "vitest",
-		"cf-typegen": "wrangler types",
-		"typecheck": "svelte-check --tsconfig tsconfig.check.json --compiler-warnings \"options_missing_custom_element:ignore\"",
-		"format": "prettier --write .",
-		"tail": "wrangler tail --env production",
-		"postinstall": "patch-package",
-		"lighthouse": "unlighthouse --config unlighthouse.config.ts"
-	},
-	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.12.4",
-		"@jgoz/esbuild-plugin-typecheck": "^4.0.4",
-		"@types/node": "^25.3.0",
-		"esbuild-svelte": "^0.9.4",
-		"patch-package": "^8.0.1",
-		"prettier": "^3.8.1",
-		"svelte": "^5.53.7",
-		"svelte-check": "^4.4.4",
-		"svelte-preprocess": "^6.0.3",
-		"typescript": "^5.5.2",
-		"unlighthouse": "^0.17.7",
-		"vitest": "~3.2.0",
-		"wrangler": "^4.68.0",
-		"xss": "^1.0.15"
-	},
-	"dependencies": {
-		"@types/core-js": "^2.5.8",
-		"core-js": "^3.49.0",
-		"devalue": "^5.6.3",
-		"fast-sha256": "^1.3.0",
-		"linkedom": "^0.18.12",
-		"zod": "^4.3.6"
-	}
+  "name": "shi-web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "turbo build",
+    "dev": "turbo watch build --filter=@shi-institute/reverse-proxy^... & turbo dev",
+    "deploy": "turbo deploy",
+    "format": "prettier --write ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.2",
+  "devDependencies": {
+    "prettier": "^3.8.3",
+    "turbo": "^2.9.6"
+  }
 }

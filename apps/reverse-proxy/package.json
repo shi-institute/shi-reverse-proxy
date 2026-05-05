@@ -1,0 +1,36 @@
+{
+  "name": "@shi-institute/reverse-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "deploy": "CI=1 CLOUDFLARE_ENV=production vite build --mode production && wrangler deploy",
+    "dev": "CI=1 CLOUDFLARE_ENV=development vite dev --mode development",
+    "build": "CI=1 CLOUDFLARE_ENV=production vite build --mode production",
+    "cf-typegen": "wrangler types",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.2",
+  "dependencies": {
+    "@shi-institute/custom-elements": "workspace:",
+    "@shi-institute/schemas": "workspace:",
+    "@shi-institute/scoped-globals": "workspace:",
+    "@shi-institute/utils": "workspace:",
+    "core-js": "^3.49.0",
+    "linkedom": "^0.18.12",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.33.2",
+    "@types/core-js": "^2.5.8",
+    "@types/node": "^25.6.0",
+    "vite": "^8.0.10",
+    "vite-plugin-dts": "^4.5.4",
+    "wrangler": "^4.85.0"
+  }
+}

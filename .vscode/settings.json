@@ -1,15 +1,8 @@
 {
-	"files.associations": {
-		"wrangler.json": "jsonc"
-	},
-	"svelte.plugin.svelte.compilerWarnings": {
-		"options_missing_custom_element": "ignore"
-	},
-	"editor.defaultFormatter": "esbenp.prettier-vscode",
-	"[json]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	},
-	"[jsonc]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	}
+  "files.exclude": {
+    "**/.svelte": true,
+    "**/.esbuild-dist": true,
+    "**/.esbuild": true,
+    "**/.turbo": true
+  }
 }

@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    /* Specify a set of bundled library declaration files that describe the target runtime environment. */
+    "lib": ["es2024"]
+  },
+  "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.d.ts"]
+}
