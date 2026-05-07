@@ -191,21 +191,30 @@ function toTypeDeclaration(code: string, options: ts.CompilerOptions = {}) {
   };
 
   const compilerHost = ts.createCompilerHost(resolvedOptions);
+  const originalReadFile = compilerHost.readFile.bind(compilerHost);
 
   // overwrite the writeFile method to capture the emitted declaration file content
   let dtsContent = '';
   compilerHost.writeFile = (fileName, content) => {
-    if (fileName.endsWith('.d.ts')) {
+    if (fileName === 'foo.d.ts') {
       dtsContent = content;
     }
   };
 
-  // overwrite the readFile method to provide the prepared code as input
-  compilerHost.readFile = () => code;
+  // overwrite the readFile method to provide the prepared code as input for the
+  // virtual file only; delegate everything else so svelte types resolve correctly
+  compilerHost.readFile = (fileName) => {
+    if (fileName === 'foo.ts') return code;
+    return originalReadFile(fileName);
+  };
+
+  // svelte2tsx dts output uses __sveltets_2_fn_component and other helpers
+  // defined in svelte-shims-v4.d.ts
+  const svelteShimsPath = resolve(__dirname, 'node_modules/svelte2tsx/svelte-shims-v4.d.ts');
 
   const program = ts.createProgram({
     options: resolvedOptions,
-    rootNames: ['foo'], // the file name doesn't matter since readFile is overwritten
+    rootNames: ['foo.ts', svelteShimsPath],
     host: compilerHost,
   });
 
