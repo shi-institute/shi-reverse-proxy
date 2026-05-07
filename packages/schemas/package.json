@@ -1,6 +1,6 @@
 {
   "name": "@shi-institute/schemas",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "type": "module",
   "main": "dist/index.js",
@@ -13,6 +13,13 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "vite build"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [],
   "author": "",

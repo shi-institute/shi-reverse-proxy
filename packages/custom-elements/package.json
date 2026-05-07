@@ -1,6 +1,6 @@
 {
   "name": "@shi-institute/custom-elements",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "type": "module",
   "main": "dist/index.js",
@@ -24,6 +24,13 @@
     "postinstall": "patch-package",
     "build": "vite build"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -32,6 +39,7 @@
     "@shi-institute/schemas": "workspace:",
     "@shi-institute/utils": "workspace:",
     "@shi-institute/vite-plugin-custom-elements-manifest": "workspace:",
+    "devalue": "^5.8.0",
     "patch-package": "^8.0.1",
     "zod": "^4.3.6"
   },

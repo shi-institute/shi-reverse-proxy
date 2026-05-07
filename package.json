@@ -1,6 +1,6 @@
 {
   "name": "shi-web",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -8,13 +8,18 @@
     "build": "turbo build",
     "dev": "turbo watch build --filter=@shi-institute/reverse-proxy^... & turbo dev",
     "deploy": "turbo deploy",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset tag"
   },
+  "private": true,
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.33.2",
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "prettier": "^3.8.3",
     "turbo": "^2.9.6"
   }
