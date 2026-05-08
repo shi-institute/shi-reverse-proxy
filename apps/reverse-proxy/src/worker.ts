@@ -16,7 +16,8 @@ export default {
 
       // redirect all origins to shi.institute when in a production deployment
       const isVitePreview = requestUrl.port === '4173';
-      if (import.meta.env.PROD && requestUrl.origin !== env.ORIGIN && !isVitePreview) {
+      const isCloudflarePreview = requestUrl.hostname.endsWith('.workers.dev');
+      if (import.meta.env.PROD && requestUrl.origin !== env.ORIGIN && !isVitePreview && !isCloudflarePreview) {
         return Response.redirect(new URL(requestUrl.pathname + requestUrl.search, env.ORIGIN), 307);
       }
 

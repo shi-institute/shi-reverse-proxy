@@ -8,10 +8,7 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-02-23",
   "account_id": "15afb918eddd8e9dc22c791b18060ade",
-  "compatibility_flags": [
-    "nodejs_compat",
-    "nodejs_compat_populate_process_env"
-  ],
+  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "triggers": {
     "crons": [
       "0 */4 * * *", // every 4 hours (re-cache all posts)
@@ -30,6 +27,7 @@
           "service": "shi-reverse-proxy-development",
         },
       ],
+      "preview_urls": true,
       "routes": [],
       "kv_namespaces": [
         {
@@ -49,6 +47,7 @@
           "service": "shi-reverse-proxy-production",
         },
       ],
+      "preview_urls": true,
       "routes": [
         {
           "pattern": "shi.institute",

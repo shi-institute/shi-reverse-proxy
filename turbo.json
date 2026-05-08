@@ -13,6 +13,11 @@
       "dependsOn": ["build"],
       "cache": false,
       "persistent": false
+    },
+    "upload": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "persistent": false
     }
   }
 }
