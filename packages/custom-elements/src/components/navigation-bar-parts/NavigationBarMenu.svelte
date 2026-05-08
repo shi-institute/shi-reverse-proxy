@@ -1,3 +1,13 @@
+<svelte:options
+  customElement={{
+    props: {
+      popoverid: { attribute: 'popoverid', reflect: true, type: 'String' },
+      horizontalMenuButton: { attribute: 'horizontal-menu-button', reflect: true, type: 'Boolean' },
+      forceDarkModeMenuButton: { attribute: 'force-dark-mode-menu-button', reflect: true, type: 'Boolean' },
+    },
+  }}
+/>
+
 <script lang="ts" module>
   import type { NavigationListItem, NavigationListProps } from './NavigationList.svelte';
   import NavigationList from './NavigationList.svelte';

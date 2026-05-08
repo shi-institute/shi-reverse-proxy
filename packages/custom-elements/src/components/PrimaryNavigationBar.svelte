@@ -1,7 +1,7 @@
 <svelte:options customElement={{}} />
 
 <script lang="ts" module>
-  import Menu from './navigation-bar-parts/Menu.svelte';
+  import Menu from './navigation-bar-parts/NavigationBarMenu.svelte';
   import type { NavigationListItem, NavigationListProps } from './navigation-bar-parts/NavigationList.svelte';
   import NavigationList from './navigation-bar-parts/NavigationList.svelte';
   import Search from './navigation-bar-parts/Search.svelte';
