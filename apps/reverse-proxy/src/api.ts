@@ -232,6 +232,18 @@ export default {
       });
     }
 
+    if (url.pathname === '/.api/navigation-json') {
+      const menuData = await getNavigationMenuData(ctx);
+      return new Response(JSON.stringify(menuData), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        status: 200,
+        statusText: 'OK',
+      });
+    }
+
     if (url.pathname === '/.api/navigation-html/external') {
       const passedUrlStr = url.searchParams.get('url');
       const contextUrl = passedUrlStr ? new URL(passedUrlStr) : url;
