@@ -2,6 +2,9 @@
   "name": "@shi-institute/scoped-globals",
   "version": "1.0.1",
   "description": "",
+  "repository": {
+    "url": "https://github.com/shi-institute/shi-web-core"
+  },
   "type": "module",
   "main": "dist/index.js",
   "exports": {

@@ -3,6 +3,9 @@
   "version": "1.0.1",
   "private": true,
   "description": "",
+  "repository": {
+    "url": "https://github.com/shi-institute/shi-web-core"
+  },
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

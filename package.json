@@ -2,6 +2,9 @@
   "name": "shi-web",
   "version": "1.0.1",
   "description": "",
+  "repository": {
+    "url": "https://github.com/shi-institute/shi-web-core"
+  },
   "main": "index.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
