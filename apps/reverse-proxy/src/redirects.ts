@@ -18,8 +18,10 @@ export const redirects: Record<string, string> = {
   '/northside/methods': 'https://gis.furman.edu/portal/apps/storymaps/stories/e20e06f7043743a9bc8f4d74bf9adecc',
 
   // pages
-  '/pages/rent-affordability-calculator/index.html': '/research/pages/rent-affordability-calculator/index.html',
-  '/pages/rent-affordability-calculator': '/research/pages/rent-affordability-calculator/index.html',
+  '/pages/rent-affordability-calculator': '/research/pages/rent-affordability-calculator/',
+  '/pages/rent-affordability-calculator/index.html': '/research/pages/rent-affordability-calculator/',
+  '/research/pages/rent-affordability-calculator/index.html': '/research/pages/rent-affordability-calculator/',
+  '/research/pages/wage-rent-affordability-calculator/index.html': '/research/pages/wage-rent-affordability-calculator/',
 
   // filestore
   '/filestore/Kolb%20-%20Measuring%20and%20Mapping%20Rural%20Gentrification%20-%20Research%20Brief.pdf':
