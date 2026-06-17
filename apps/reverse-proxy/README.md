@@ -13,11 +13,11 @@ Configured proxies:
 | `furmanEdu`      | `www.furman.edu`                      |
 | `blogsFurmanEdu` | `blogs.furman.edu`                    |
 | `sli`            | SLI origin                            |
-| `interactiveWeb` | interfacetive-web origin              |
+| `interactiveWeb` | ineractive-web origin                 |
 | `upstateScLulc`  | Upstate SC land use/land cover origin |
 | `customElements` | Serves built custom element assets    |
 
-A scheduled cron handler re-caches blog posts every 4 hours and refreshes recently modified posts every minute.
+A scheduled cron handler re-caches pages and posts from `furmanEdu` and `blogsFurmanEdu` every 4 hours and refreshes recently modified posts every minute.
 
 ## Development
 
