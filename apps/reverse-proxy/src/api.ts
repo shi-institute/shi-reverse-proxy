@@ -1,7 +1,8 @@
 import customElementsCss from '@shi-institute/custom-elements/custom-elements.css?raw';
 import { navigationListItemSchema, render } from '@shi-institute/custom-elements/server';
-import { wordpressMediaSchema, wordpressProjectSchema, wpDate } from '@shi-institute/schemas';
+import { entraStaticTenantBranding, wordpressMediaSchema, wordpressProjectSchema, wpDate } from '@shi-institute/schemas';
 import { isJSON } from '@shi-institute/utils';
+import { parseHTML } from 'linkedom';
 import z from 'zod';
 import { getInjectableNavigation, getNavigationMenuData } from './menu';
 import { rewrites } from './redirects';
@@ -9,6 +10,8 @@ import { rewrites } from './redirects';
 const BLOG = 'https://blogs.furman.edu/jbtest';
 const FUWEB = 'https://www.furman.edu/shi-institute';
 const FUWEBROOT = 'https://www.furman.edu';
+const MOODLE_SSO_LOGIN_URL =
+  'https://login.microsoftonline.com/f862f7d9-f146-4518-a6fb-9f2ea82d3c80/saml2?SAMLRequest=jVLbbhshEP2VFe97Y%2B29INuSEyuqpbS1YrcPfYkwDDHSLmwZ6OXvi3cTNZXaqG8wzLnMYVbIh35k2%2BAv5gG%2BBkCf%2FBh6g2x6WJPgDLMcNTLDB0DmBTtu398zmhVsdNZbYXvyCvI2giOC89oakux3a%2FIoueRUFlwsVV3RRsV7WbayappFI2nT1YulrJbnoutI8hkcRuSaRKIIRwywN%2Bi58bFU0Dot6pTSE61YUbKi%2B0KSXZxGG%2B4n1MX7EVme9%2FZJm2zQwlm0ylvTawOZsEOu2pqqRnapKhd1uliWbcprdU47RYG3VFaiLfLrjJQk25dBbq3BMIA7gvumBXx6uP8tJWxwCJip4AZuMpAh5zHomSPHcT6kXGA2Xsa%2FtJPk8BzxjTZSm6e30z3PTcjenU6H9PDxeCKb1VWDTWm5zX8bG8DHn%2FH86muVv6ZYzQvzIYrvdwfba%2FEzubORxv%2FbW5mVU0XLVE2tLBgcQWilQcYs%2B95%2Bv3XAPayJdwFIvplF%2F1zMzS8%3D';
 
 export default {
   async fetch(
@@ -319,6 +322,96 @@ export default {
         status: 200,
         statusText: 'OK',
       });
+    }
+
+    if (url.pathname === '/.api/entra/static-tenant-branding') {
+      return fetch(MOODLE_SSO_LOGIN_URL)
+        .then((res) => res.text())
+        .then((html) => {
+          const { document } = parseHTML(html);
+
+          const scriptTags = document.querySelectorAll('script');
+          const configScriptElement = Array.from(scriptTags).find((script) => script.textContent.includes(`//<![CDATA[\n$Config={"`));
+          if (!configScriptElement) {
+            return new Response(`Could not find $Config in the HTML response from ${MOODLE_SSO_LOGIN_URL}`, {
+              headers: { 'Access-Control-Allow-Origin': '*' },
+              status: 500,
+              statusText: 'Internal Server Error',
+            });
+          }
+
+          const configScriptContent = configScriptElement.textContent;
+          const configJsonMatch = configScriptContent.match(/\$Config\s*=\s*(\{.*\});/s);
+          if (!configJsonMatch) {
+            return new Response(`Could not extract $Config JSON from the script content`, {
+              headers: { 'Access-Control-Allow-Origin': '*' },
+              status: 500,
+              statusText: 'Internal Server Error',
+            });
+          }
+
+          const configJsonString = configJsonMatch[1];
+          let configObject;
+          try {
+            configObject = JSON.parse(configJsonString || '');
+          } catch (error) {
+            return new Response(`Error parsing $Config JSON: ${error}`, {
+              headers: { 'Access-Control-Allow-Origin': '*' },
+              status: 500,
+              statusText: 'Internal Server Error',
+            });
+          }
+
+          if (
+            configObject === null ||
+            typeof configObject !== 'object' ||
+            !Array.isArray(configObject.staticTenantBranding) ||
+            configObject.staticTenantBranding.length === 0
+          ) {
+            return new Response(`$Config.staticTenantBranding is missing or not an array`, {
+              headers: { 'Access-Control-Allow-Origin': '*' },
+              status: 500,
+              statusText: 'Internal Server Error',
+            });
+          }
+
+          const staticTenantBranding = entraStaticTenantBranding.safeParse(configObject.staticTenantBranding[0]);
+          if (!staticTenantBranding.success) {
+            return new Response(
+              `$Config.staticTenantBranding does not match expected schema: ${JSON.stringify(staticTenantBranding.error.issues)}`,
+              {
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                status: 500,
+                statusText: 'Internal Server Error',
+              }
+            );
+          }
+
+          return new Response(JSON.stringify(staticTenantBranding.data), {
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Cache-Control': 'public, max-age=3600', // cache for 1 hour
+            },
+            status: 200,
+            statusText: 'OK',
+          });
+        });
+    }
+
+    if (url.pathname === '/.api/entra/static-tenant-branding/custom-element') {
+      return new Response(
+        `<head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{margin:0;}</style></head><shi-entra-like-ui></shi-entra-like-ui><script type="module" src="/custom-elements.js"></script>`,
+        {
+          headers: {
+            'Content-Type': 'text/html',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=3600', // cache for 1 hour
+          },
+          status: 200,
+          statusText: 'OK',
+        }
+      );
     }
 
     /**

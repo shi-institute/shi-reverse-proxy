@@ -1,4 +1,5 @@
 export { default as AdminBar } from './AdminBar.svelte';
+export { default as EntraLikeUI } from './EntraLikeUI/EntraLikeUI.svelte';
 export { default as ExternalNavigationBar } from './ExternalNavigationBar.svelte';
 export { default as NavigationBarMenu } from './navigation-bar-parts/NavigationBarMenu.svelte';
 export { default as PostCard } from './PostCard.svelte';
