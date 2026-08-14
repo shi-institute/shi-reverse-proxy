@@ -1,10 +1,12 @@
-<svelte:options customElement={{
-  props: {
-    title: { reflect: true, type: 'String', attribute: 'title' },
-    options: { reflect: true, type: 'Array', attribute: 'options' },
-    extraBoilerplateText: { reflect: true, type: 'String', attribute: 'extra-boilerplate-text' },
-  },
-}} />
+<svelte:options
+  customElement={{
+    props: {
+      title: { reflect: true, type: 'String', attribute: 'title' },
+      options: { reflect: true, type: 'Array', attribute: 'options' },
+      extraBoilerplateText: { reflect: true, type: 'String', attribute: 'extra-boilerplate-text' },
+    },
+  }}
+/>
 
 <script lang="ts" module>
   import type { EntraStaticTenantBranding } from '@shi-institute/schemas';
@@ -56,9 +58,12 @@
   } = $props() as EntraLikeUIProps;
 
   const isLocalhost = window.location.hostname === 'localhost';
-  const isShiInstitute = window.location.hostname === ('shi.institute');
-  const fetcher = await fetchWithHydration<EntraStaticTenantBranding>('static-tenant-branding', () => (!isLocalhost && !isShiInstitute ? 'https://shi.institute' : '') + '/.api/entra/static-tenant-branding');
-  
+  const isShiInstitute = window.location.hostname === 'shi.institute';
+  const fetcher = await fetchWithHydration<EntraStaticTenantBranding>(
+    'static-tenant-branding',
+    () => (!isLocalhost && !isShiInstitute ? 'https://shi.institute' : '') + '/.api/entra/static-tenant-branding'
+  );
+
   const illustration = $derived(fetcher.data?.Illustration);
 </script>
 
@@ -84,10 +89,7 @@
 
       {#if fetcher.loading}
         <div id="loginHeader" role="heading" aria-level="1">Please wait</div>
-      {:else if fetcher.error}
-        <div id="loginHeader" role="heading" aria-level="1">Something went wrong</div>
-        <p>Error: {fetcher.error.message}</p>
-      {:else if fetcher.data}
+      {:else}
         <div id="loginHeader" role="heading" aria-level="1">{title}</div>
 
         {#each options as { href, description, smallDescription, logoSrc, padding }, index}
@@ -104,6 +106,15 @@
 
         <div class="buttons">
           <button onclick={() => history.back()}>Back</button>
+        </div>
+      {/if}
+
+      {#if fetcher.error}
+        <div id="idBoilerPlateText">
+          <p>
+            Something went wrong.<br />
+            Error: {fetcher.error.message}
+          </p>
         </div>
       {/if}
 
